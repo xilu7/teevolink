@@ -1,6 +1,6 @@
 <script setup>
 import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
-import { HOME_GUIDE_INTRO } from "@/config/home-content.js";
+import { HOME_GUIDE_INTRO, HOME_GUIDE_COMPAT } from "@/config/home-content.js";
 </script>
 
 <template>
@@ -8,6 +8,9 @@ import { HOME_GUIDE_INTRO } from "@/config/home-content.js";
     <header class="guide-head">
       <h2 class="guide-title">连接引导</h2>
       <p class="guide-lead">{{ HOME_GUIDE_INTRO }}</p>
+      <ul class="guide-compat">
+        <li v-for="(line, i) in HOME_GUIDE_COMPAT" :key="i">{{ line }}</li>
+      </ul>
     </header>
 
     <ol class="guide-grid">

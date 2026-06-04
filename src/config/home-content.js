@@ -1,15 +1,13 @@
 /** 首页文案 — 玩家可读 */
 
-export const HOME_WELCOME = {
-  title: "欢迎来到 TEEVOLINK",
-  osLine: "适配 Windows、macOS、Linux 等主流操作系统",
-  browserLine:
-    "兼容 Google Chrome、Microsoft Edge、Opera 等主流浏览器（修改鼠标设置请优先使用 Chrome 或 Edge）",
-};
-
-/** 连接引导区副标题 */
+/** 连接引导区说明（含系统 / 浏览器兼容，写在引导卡片内） */
 export const HOME_GUIDE_INTRO =
   "第一次使用？按下面四步连上 Terra Pro 即可。授权过一次后，下次打开网页会自动连接，不用再点弹窗。";
+
+export const HOME_GUIDE_COMPAT = [
+  "适配 Windows、macOS、Linux 等主流操作系统",
+  "兼容 Chrome、Edge、Opera 等浏览器；改鼠标设置请优先用 Chrome 或 Edge",
+];
 
 export const SUPPORTED_BROWSERS = [
   { id: "chrome", name: "Google Chrome", version: "89+", ok: true },

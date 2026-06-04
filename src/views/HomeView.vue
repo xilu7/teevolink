@@ -5,7 +5,6 @@ import { useDevice } from "@/composables/useDevice.js";
 import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
-import HomeWelcome from "@/components/home/HomeWelcome.vue";
 import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
 
 const router = useRouter();
@@ -111,10 +110,7 @@ function openSettings() {
         @refresh="runConnect"
       />
 
-      <template v-if="!deviceOpen">
-        <HomeWelcome />
-        <HomeConnectGuide />
-      </template>
+      <HomeConnectGuide v-if="!deviceOpen" />
 
       <p v-if="success" class="feedback success">{{ success }}</p>
       <p v-if="error" class="feedback error">
