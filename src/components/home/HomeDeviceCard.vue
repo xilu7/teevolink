@@ -51,7 +51,7 @@ const dongleVer = computed(() => deviceInfo.version?.dongle || "—");
 const mouseVer = computed(() => deviceInfo.version?.device || "—");
 
 const statusText = computed(() => {
-  if (props.booting) return "正在连接…";
+  if (props.booting) return "正在检查连接…";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
   if (connecting.value) return "同步参数中…";
   if (deviceOpen.value && online.value) return "鼠标在线 · 同步中";
@@ -178,7 +178,7 @@ const statusText = computed(() => {
   margin-bottom: 0.2rem;
 }
 .card-title {
-  font-size: 1.35rem;
+  font-size: 1.65rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.03em;
@@ -230,7 +230,7 @@ const statusText = computed(() => {
   }
 }
 .param-cell dt {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -238,7 +238,7 @@ const statusText = computed(() => {
 }
 .param-cell dd {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--tx);
 }

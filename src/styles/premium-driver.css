@@ -7,10 +7,10 @@
  */
 
 .driver-shell {
-  --driver-max: 1040px;
-  --panel-gap: 0.6rem;
-  --panel-pad: 0.8rem 0.9rem;
-  --radius-panel: 12px;
+  --driver-max: 1320px;
+  --panel-gap: 0.85rem;
+  --panel-pad: 1rem 1.1rem;
+  --radius-panel: 14px;
 }
 
 .driver-shell .container {

@@ -4,15 +4,27 @@
 
 :root {
   --font: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --ui-scale: 1.25;
 }
 
 /* 驱动视觉：中性底 + 黑/白主按钮 + 品牌绿仅出现在官方字标 V 与主操作 */
+
+html {
+  font-size: calc(16px * var(--ui-scale));
+}
+
+@media (min-width: 1200px) {
+  html {
+    font-size: calc(18px * var(--ui-scale));
+  }
+}
 
 body {
   font-family: var(--font);
   background: var(--bg3);
   color: var(--tx);
   min-height: 100vh;
+  line-height: 1.5;
 }
 
 a {

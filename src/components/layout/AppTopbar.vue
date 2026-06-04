@@ -1,5 +1,6 @@
 <script setup>
 import BrandLogo from "@/components/brand/BrandLogo.vue";
+import UiScaleControl from "@/components/layout/UiScaleControl.vue";
 import { useTheme } from "@/composables/useTheme.js";
 
 defineProps({
@@ -26,6 +27,7 @@ const { isDark, toggleTheme } = useTheme();
       </div>
       <div class="app-topbar-end">
         <slot name="meta" />
+        <UiScaleControl />
         <slot name="status" />
         <button
           v-if="showConnect"
@@ -64,7 +66,7 @@ const { isDark, toggleTheme } = useTheme();
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 52px;
+  min-height: 58px;
   padding: 0.4rem 0;
 }
 .app-topbar-start,

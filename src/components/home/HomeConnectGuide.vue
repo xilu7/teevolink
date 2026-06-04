@@ -38,7 +38,7 @@ import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
   background: var(--bg);
 }
 .guide-title {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   font-weight: 800;
   margin: 0 0 0.35rem;
 }

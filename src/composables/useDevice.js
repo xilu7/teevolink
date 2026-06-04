@@ -189,8 +189,12 @@ export function useDevice() {
     }
 
     let recovered = false;
+    let lastUiTick = 0;
     for (let i = 0; i < maxSeconds; i++) {
-      onTick?.(i + 1, maxSeconds);
+      if (onTick && (i === 0 || Date.now() - lastUiTick > 2800)) {
+        onTick(i + 1, maxSeconds);
+        lastUiTick = Date.now();
+      }
       if (connected.value) {
         applySensorConfig();
         return true;
@@ -329,9 +333,20 @@ export function useDevice() {
 
     const historyOnline = history?.some((h) => h.online);
     if (historyOnline || (await checkMouseOnline())) {
+      if (opts.quick) {
+        onPhase?.("正在同步参数…");
+        const ready = await waitUntilReady(8000);
+        if (ready) applySensorConfig();
+        return {
+          status: ready ? "ready" : "authorized",
+          ready,
+          hasAuth: true,
+          message: ready ? "已自动连接" : "接收器已就绪，请点「重新同步」",
+        };
+      }
       onPhase?.("等待参数同步…");
-      const ready = await waitForMouseReady(opts.maxSeconds ?? 30, (sec, max) => {
-        onPhase?.(`同步参数 ${sec}/${max} 秒…`);
+      const ready = await waitForMouseReady(opts.maxSeconds ?? 20, (sec, max) => {
+        onPhase?.(`同步中 ${sec}/${max} 秒`);
       });
       return {
         status: ready ? "ready" : "authorized",

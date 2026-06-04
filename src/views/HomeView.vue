@@ -16,7 +16,7 @@ const phase = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-g";
+const BUILD_TAG = "2026-06-04-h";
 
 const showGuide = computed(() => !deviceOpen.value);
 
@@ -82,11 +82,9 @@ onMounted(async () => {
     return;
   }
   booting.value = true;
+  phase.value = "正在检查已授权设备…";
   try {
-    const result = await autoConnectFromFactory({
-      maxSeconds: 25,
-      onPhase: (m) => (phase.value = m),
-    });
+    const result = await autoConnectFromFactory({ quick: true });
     if (result.message && result.status !== "need_request") {
       success.value = result.message;
     }
@@ -111,7 +109,9 @@ onMounted(async () => {
     </AppTopbar>
 
     <main class="container home-main">
-      <p v-if="booting || busy" class="home-phase">{{ phase || "正在按工厂 SDK 连接…" }}</p>
+      <p v-if="(booting || busy) && (phase || booting)" class="home-phase">
+        {{ phase || "正在检查连接…" }}
+      </p>
 
       <HomeDeviceCard
         :booting="booting || busy"
