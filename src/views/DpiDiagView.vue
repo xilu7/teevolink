@@ -11,12 +11,40 @@ const router = useRouter();
 const logs = ref([]);
 const running = ref(false);
 
+const REPORT_ID = 0x08;
+const BUILD = "2026-06-04-t";
+
 const ADDR = {
   maxStage: 0x02,
   current: 0x04,
   dpi0: 0x0c,
   sensor3955: 0x1b00,
 };
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function pickDevice(devices) {
+  return (
+    devices.find((d) => {
+      if (d.vendorId !== 0x3554) return false;
+      return d.collections?.some(
+        (c) =>
+          c.inputReports?.length === 1 &&
+          c.outputReports?.length === 1 &&
+          c.outputReports[0].reportId === REPORT_ID
+      );
+    }) ?? devices.find((d) => d.vendorId === 0x3554) ?? null
+  );
+}
+
+function connectStateName(st) {
+  if (st === HID.DeviceConectState.Connected) return "Connected";
+  if (st === HID.DeviceConectState.Connecting) return "Connecting";
+  if (st === HID.DeviceConectState.TimeOut) return "TimeOut";
+  return "Disconnected";
+}
 
 function log(msg, ok) {
   const line = `[${new Date().toLocaleTimeString()}] ${ok === true ? "✓ " : ok === false ? "✗ " : ""}${msg}`;
@@ -33,6 +61,7 @@ function flashSlice(addr, len) {
   return parts.join(" ");
 }
 
+/** 与连接诊断一致：不因 online=false 就退出，而是 Device_Connect 并等待 Connected */
 async function ensureSession() {
   if (!navigator.hid) {
     log("无 Web HID", false);
@@ -44,41 +73,83 @@ async function ensureSession() {
   HID.Set_DriverOnline(false);
   HID.Add_Listen_HID_Events();
 
-  const devs = await navigator.hid.getDevices();
-  const dev =
-    devs.find((d) => d.vendorId === 0x3554 && d.opened) ??
-    devs.find((d) => d.vendorId === 0x3554);
+  const dev = pickDevice(await navigator.hid.getDevices());
   if (!dev) {
-    log("未授权设备：请先在首页连接 RapidSync", false);
+    log("未授权设备：请先在首页点「连接设备」选 RapidSync", false);
     return false;
   }
-  if (!dev.opened) {
+  log(`设备 ${dev.productName || "?"} PID=0x${dev.productId?.toString(16)}`);
+
+  if (
+    HID.deviceInfo.deviceOpen &&
+    dev.opened &&
+    HID.deviceInfo.connectState === HID.DeviceConectState.Connected
+  ) {
+    log("已是 Connected，直接读取", true);
+    await syncDpiSensorFromFlash();
+    return true;
+  }
+
+  if (!dev.opened || !HID.deviceInfo.deviceOpen) {
+    log("Device_Reconnect…");
     await HID.Device_Reconnect(dev);
   }
   if (!HID.deviceInfo.deviceOpen) {
-    log("Device_Reconnect 失败", false);
+    log("接收器未打开，请重新插 USB", false);
     return false;
   }
-  const online = await HID.Get_Current_Device_Online(dev);
-  log("deviceOpen=" + HID.deviceInfo.deviceOpen + " online=" + online, online);
-  if (!online) {
-    log("鼠标未在线：请 2.4G 唤醒", false);
-    return false;
+
+  let online = await HID.Get_Current_Device_Online(dev);
+  log(
+    "deviceOpen=true，首次 online=" +
+      online +
+      "（online 为 false 也会继续，请 2.4G 晃动鼠标）",
+    online === true || online === 1
+  );
+
+  if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {
+    await syncDpiSensorFromFlash();
+    return true;
   }
-  if (HID.deviceInfo.connectState !== HID.DeviceConectState.Connected) {
+
+  log("Device_Connect（同步参数，约 1 分钟内完成）…");
+  try {
     await HID.Device_Connect();
-    await new Promise((r) => setTimeout(r, 2000));
+  } catch (e) {
+    log("Device_Connect 异常: " + (e?.message || e), false);
+    return false;
   }
-  log("connectState=" + HID.deviceInfo.connectState, HID.deviceInfo.connectState === HID.DeviceConectState.Connected);
-  await syncDpiSensorFromFlash();
-  return HID.deviceInfo.connectState === HID.DeviceConectState.Connected;
+
+  for (let i = 1; i <= 60; i++) {
+    const st = HID.deviceInfo.connectState;
+    if (i === 1 || i % 5 === 0 || st === HID.DeviceConectState.Connected) {
+      if (i % 5 === 0) online = await HID.Get_Current_Device_Online(dev);
+      log(
+        `第 ${i} 秒：${connectStateName(st)}，online=${HID.deviceInfo.online ?? online}`,
+        st === HID.DeviceConectState.Connected
+      );
+    }
+    if (st === HID.DeviceConectState.Connected) {
+      log("成功：已进入 Connected，可以测 DPI", true);
+      await syncDpiSensorFromFlash();
+      return true;
+    }
+    if (st === HID.DeviceConectState.TimeOut) {
+      const detail = HID.deviceInfo.lastSyncError ? `（${HID.deviceInfo.lastSyncError}）` : "";
+      log("失败：TimeOut" + detail, false);
+      return false;
+    }
+    await sleep(1000);
+  }
+  log("60 秒未 Connected：请回设备页点「重新同步」后再来本页", false);
+  return false;
 }
 
 async function runReadReport() {
   logs.value = [];
   running.value = true;
   try {
-    log("—— DPI 诊断（BUILD 2026-06-04-s）——");
+    log("—— DPI 诊断（BUILD " + BUILD + "）——");
     if (!(await ensureSession())) return;
 
     const layout = HID.deviceInfo.mouseCfg.sensor.dpiEepromKind || HID.detectDpiEepromType();
@@ -156,7 +227,7 @@ async function runFixStages() {
     <main class="container">
       <h1>DPI 专项诊断</h1>
       <p class="lead">
-        Terra Pro 使用 <strong>3950·0x0C</strong> 存储。请 2.4G 唤醒后依次点下面按钮，把灰框日志全选复制给我们。
+        Terra Pro 使用 <strong>3950·0x0C</strong> 存储。请 2.4G 开机并<strong>晃动鼠标</strong>，点「1」后会自动连接（约 1 分钟），看到日志里 <strong>Connected</strong> 再点 2～4。
       </p>
       <div class="btn-row">
         <button type="button" class="btn-diag" :disabled="running" @click="runReadReport">1. 读取现状</button>
@@ -169,7 +240,7 @@ async function runFixStages() {
         <router-link to="/diag">通用连接诊断</router-link>
         ·
         <router-link to="/device">返回设备页</router-link>
-        · 首页页脚版本应为 <strong>2026-06-04-s</strong>
+        · 版本应为 <strong>2026-06-04-t</strong>（日志 BUILD 行可见）
       </p>
     </main>
   </div>
