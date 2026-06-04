@@ -166,81 +166,36 @@ export function useDevice() {
     return startHidSession();
   }
 
-  async function waitForMouseReady(maxSeconds = 25, onTick) {
-    if (
-      HID.deviceInfo.connectState === HID.DeviceConectState.Connecting ||
-      HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut
-    ) {
-      const quick = await waitUntilReady(8);
-      if (quick) {
+  /**
+   * 安静等待 SDK 变为 Connected（不反复 Device_Connect / recover，避免界面闪烁）
+   */
+  async function finishConnect(maxMs = 16000) {
+    const start = Date.now();
+    while (Date.now() - start < maxMs) {
+      if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {
         applySensorConfig();
         return true;
       }
-      await recoverStuckSession();
-    }
-
-    if (!HID.deviceInfo.deviceOpen) {
-      if (!(await startHidSession())) return false;
-    }
-
-    if (connected.value) {
-      applySensorConfig();
-      return true;
-    }
-
-    let recovered = false;
-    let lastUiTick = 0;
-    for (let i = 0; i < maxSeconds; i++) {
-      if (onTick && (i === 0 || Date.now() - lastUiTick > 2800)) {
-        onTick(i + 1, maxSeconds);
-        lastUiTick = Date.now();
-      }
-      if (connected.value) {
-        applySensorConfig();
-        return true;
-      }
-
-      if (
-        !recovered &&
-        i >= 10 &&
-        HID.deviceInfo.connectState === HID.DeviceConectState.Connecting
-      ) {
-        recovered = true;
-        await recoverStuckSession();
-      }
-
       if (HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut) {
-        await recoverStuckSession();
-        recovered = true;
+        return false;
       }
-
-      const isOn = await checkMouseOnline();
-      if (
-        isOn &&
-        HID.deviceInfo.connectState !== HID.DeviceConectState.Connecting
-      ) {
-        try {
-          await HID.Device_Connect();
-        } catch (e) {
-          console.warn("waitForMouseReady Device_Connect", e);
-        }
-      }
-
-      if (await waitUntilReady(2000)) return true;
-      await sleep(1000);
+      await sleep(350);
     }
-    return connected.value;
+    return HID.deviceInfo.connectState === HID.DeviceConectState.Connected;
   }
 
-  /** 用户点「同步设备 / 立即连接」— 带超时，避免一直「正在连接」 */
-  async function syncDevice(maxSeconds = 22) {
-    await init();
-
-    if (
-      connecting.value ||
+  function isStuckConnecting() {
+    return (
       HID.deviceInfo.connectState === HID.DeviceConectState.Connecting ||
       HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut
-    ) {
+    );
+  }
+
+  /** 用户点「同步 / 重新同步」 */
+  async function syncDevice() {
+    await init();
+
+    if (isStuckConnecting()) {
       await recoverStuckSession();
     } else if (!HID.deviceInfo.deviceOpen) {
       if (!(await startHidSession())) return false;
@@ -253,11 +208,20 @@ export function useDevice() {
 
     if (!(await checkMouseOnline())) return false;
 
-    if (HID.deviceInfo.connectState !== HID.DeviceConectState.Connecting) {
-      await HID.Device_Connect();
+    if (!isStuckConnecting()) {
+      try {
+        await HID.Device_Connect();
+      } catch (e) {
+        console.warn("syncDevice Device_Connect", e);
+      }
     }
 
-    return waitForMouseReady(maxSeconds);
+    return finishConnect(16000);
+  }
+
+  /** @deprecated 内部改用 finishConnect，保留兼容 */
+  async function waitForMouseReady(maxSeconds = 16) {
+    return finishConnect(maxSeconds * 1000);
   }
 
   async function pollMouseOnline(maxSeconds = 60) {
@@ -334,24 +298,20 @@ export function useDevice() {
 
     const historyOnline = history?.some((h) => h.online);
     if (historyOnline || (await checkMouseOnline())) {
-      if (opts.quick) {
-        onPhase?.("正在同步参数…");
-        const ready = await waitUntilReady(8000);
-        if (ready) applySensorConfig();
-        return {
-          status: ready ? "ready" : "authorized",
-          ready,
-          hasAuth: true,
-          message: ready ? "已自动连接" : "接收器已就绪，请点「重新同步」",
-        };
+      if (!isStuckConnecting()) {
+        try {
+          await HID.Device_Connect();
+        } catch (e) {
+          console.warn("autoConnect Device_Connect", e);
+        }
       }
-      onPhase?.("等待参数同步…");
-      const ready = await waitForMouseReady(opts.maxSeconds ?? 18);
+      const ms = opts.quick ? 6000 : 12000;
+      const ready = await finishConnect(ms);
       return {
         status: ready ? "ready" : "authorized",
         ready,
         hasAuth: true,
-        message: ready ? "已自动连接" : "接收器已就绪，请唤醒鼠标",
+        message: ready ? "已自动连接" : "接收器已就绪，请点「重新同步」",
       };
     }
 
@@ -407,15 +367,30 @@ export function useDevice() {
       };
     }
 
-    const ready = await waitForMouseReady(opts.maxSeconds ?? 18);
+    if (!(await checkMouseOnline())) {
+      return {
+        status: "authorized",
+        ready: false,
+        hasAuth: true,
+        message: "已授权接收器。请 2.4G 档打开电源并晃动鼠标，再点重新同步",
+      };
+    }
+
+    if (!isStuckConnecting()) {
+      try {
+        await HID.Device_Connect();
+      } catch (e) {
+        console.warn("connect Device_Connect", e);
+      }
+    }
+
+    const ready = await finishConnect(16000);
 
     return {
       status: ready ? "ready" : "authorized",
       ready,
       hasAuth: true,
-      message: ready
-        ? "连接成功"
-        : "已授权。请 2.4G + 唤醒鼠标，稍后会自动同步",
+      message: ready ? "连接成功" : "接收器已就绪，请 2.4G 唤醒后点重新同步",
     };
   }
 
@@ -424,30 +399,20 @@ export function useDevice() {
   }
 
   async function refresh() {
-    return syncDevice(22);
+    return syncDevice();
   }
 
   async function bootDevicePage() {
     await init();
-    const history = await HID.Get_HistoryDevicesInfo();
-    if (history?.length) {
-      const entry = history.find((h) => h.online) || history[0];
-      if (entry?.device) {
-        await HID.Device_Reconnect(entry.device);
-        if (entry.online) {
-          await HID.Device_Connect();
-          if (await waitUntilReady(20000)) {
-            applySensorConfig();
-            return true;
-          }
-        }
-      }
+    if (!(await startHidSession())) return false;
+    if (connected.value) {
+      applySensorConfig();
+      return true;
     }
-    if (!HID.deviceInfo.deviceOpen) {
-      if (!(await startHidSession())) return false;
+    if (await checkMouseOnline() && !isStuckConnecting()) {
+      await HID.Device_Connect();
     }
-    await HID.Device_Connect();
-    return waitForMouseReady(25);
+    return finishConnect(16000);
   }
 
   async function enterPairMode() {

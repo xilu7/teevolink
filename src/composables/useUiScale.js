@@ -40,7 +40,8 @@ export function useUiScale() {
     try {
       const raw = localStorage.getItem("teevolink-ui-scale");
       const saved = raw != null ? parseFloat(raw) : NaN;
-      applyScale(Number.isFinite(saved) ? saved : DEFAULT_UI_SCALE);
+      const v = Number.isFinite(saved) ? saved : DEFAULT_UI_SCALE;
+      applyScale(v < 1.2 ? DEFAULT_UI_SCALE : v);
     } catch {
       applyScale(DEFAULT_UI_SCALE);
     }

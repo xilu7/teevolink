@@ -10,53 +10,54 @@ const router = useRouter();
 const { connect, autoConnectFromFactory, syncDevice, deviceOpen, isReady } = useDevice();
 
 const busy = ref(false);
-const booting = ref(false);
 const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-i";
+const BUILD_TAG = "2026-06-04-j";
 
-async function onConnectDevice() {
+async function runConnect() {
+  if (busy.value) return;
   error.value = "";
   success.value = "";
   if (!navigator.hid) {
     error.value = "请使用 Chrome 89+ 或 Edge 89+。";
     return;
   }
-  if (busy.value) return;
 
   busy.value = true;
   statusMsg.value = "正在连接，请稍候（约 20 秒）…";
   try {
-    const result = await connect({ maxSeconds: 18 });
-    if (result.status === "cancelled") {
-      error.value = result.message;
-      return;
+    let ready = false;
+    let message = "";
+
+    if (deviceOpen.value) {
+      ready = await syncDevice();
+      message = ready
+        ? "已连接"
+        : "接收器已打开。请 2.4G 唤醒鼠标后再点一次";
+    } else {
+      const result = await connect();
+      if (result.status === "cancelled") {
+        error.value = result.message;
+        return;
+      }
+      if (result.status === "failed") {
+        error.value = result.message;
+        return;
+      }
+      ready = result.ready;
+      message = result.message;
     }
-    if (result.status === "failed") {
-      error.value = result.message;
-      return;
-    }
-    success.value = result.message;
-    if (result.ready) {
-      setTimeout(() => router.push("/device"), 400);
+
+    if (ready) {
+      success.value = message || "已连接";
+      setTimeout(() => router.push("/device"), 500);
+    } else {
+      success.value = message;
     }
   } catch (e) {
     error.value = e?.message || "连接失败";
-  } finally {
-    busy.value = false;
-    statusMsg.value = "";
-  }
-}
-
-async function onResync() {
-  if (busy.value) return;
-  busy.value = true;
-  statusMsg.value = "正在同步参数…";
-  try {
-    const ok = await syncDevice(18);
-    success.value = ok ? "已连接，可以改 DPI" : "请确认鼠标在 2.4G 并已唤醒";
   } finally {
     busy.value = false;
     statusMsg.value = "";
@@ -69,13 +70,10 @@ function openSettings() {
 
 onMounted(async () => {
   if (!navigator.hid) return;
-  booting.value = true;
   try {
     await autoConnectFromFactory({ quick: true, silent: true });
   } catch (e) {
     console.warn("home auto connect", e);
-  } finally {
-    booting.value = false;
   }
 });
 </script>
@@ -92,17 +90,17 @@ onMounted(async () => {
     </AppTopbar>
 
     <main class="container home-main">
-      <p v-if="statusMsg" class="home-status">{{ statusMsg }}</p>
+      <p v-if="busy && statusMsg" class="home-status">{{ statusMsg }}</p>
 
       <HomeDeviceCard
-        :busy="busy || booting"
-        @connect="onConnectDevice"
+        :busy="busy"
+        @connect="runConnect"
         @open-settings="openSettings"
-        @refresh="onResync"
+        @refresh="runConnect"
       />
 
       <section v-if="!deviceOpen" class="home-hint">
-        <p><strong>首次使用：</strong>插入 RapidSync → 点上方「连接设备」→ 弹窗选 RapidSync → 允许。</p>
+        <p><strong>首次使用：</strong>插入 RapidSync → 点「连接设备」→ 弹窗选 RapidSync → 允许。</p>
         <p>鼠标请拨到 <strong>2.4G</strong>，打开电源并晃动唤醒。</p>
       </section>
 
@@ -111,14 +109,14 @@ onMounted(async () => {
         <ul>
           <li v-for="(line, i) in CONNECT_GUIDE" :key="i">{{ line }}</li>
         </ul>
-        <p v-if="isReady" class="tips-go">已连接。点「打开驱动设置」改 DPI / 按键。</p>
-        <p v-else class="tips-warn">接收器已打开。请 2.4G 唤醒后点「重新同步」。</p>
+        <p v-if="isReady" class="tips-go">已连接。点「打开驱动设置」改 DPI。</p>
+        <p v-else class="tips-warn">若 20 秒仍未连接：2.4G + 唤醒 → 点「重新同步」。</p>
       </section>
 
       <p v-if="success" class="feedback success">{{ success }}</p>
       <p v-if="error" class="feedback error">
         {{ error }}
-        <button type="button" class="feedback-retry" @click="onConnectDevice">重试</button>
+        <button type="button" class="feedback-retry" @click="runConnect">重试</button>
       </p>
     </main>
   </div>

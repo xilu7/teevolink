@@ -34,9 +34,9 @@ const reportHz = computed(() =>
 );
 
 const batteryText = computed(() => {
-  if (!deviceOpen.value) return "—";
+  if (!deviceOpen.value || props.busy) return "—";
   const lv = battery.value?.level;
-  if (lv == null) return connecting.value ? "读取中…" : "—";
+  if (lv == null) return "—";
   return `${lv}%`;
 });
 
@@ -51,11 +51,10 @@ const dongleVer = computed(() => deviceInfo.version?.dongle || "—");
 const mouseVer = computed(() => deviceInfo.version?.device || "—");
 
 const statusText = computed(() => {
-  if (props.busy) return "连接中，请稍候…";
+  if (props.busy) return "正在连接…";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步参数中…";
-  if (deviceOpen.value && online.value) return "鼠标在线";
-  if (deviceOpen.value) return "接收器已就绪 · 等待鼠标";
+  if (deviceOpen.value && online.value) return "鼠标在线 · 等待同步完成";
+  if (deviceOpen.value) return "接收器已就绪";
   return "未连接";
 });
 </script>
@@ -100,9 +99,8 @@ const statusText = computed(() => {
         </div>
       </dl>
 
-      <p v-if="deviceOpen && !isReady" class="card-hint">
-        SDK：{{ connectStateLabel }} · 在线 {{ online ? "是" : "否" }}。请底部开关
-        <strong>2.4G</strong> 并晃动鼠标。
+      <p v-if="deviceOpen && !isReady && !busy" class="card-hint">
+        请底部开关 <strong>2.4G</strong>，打开电源并晃动鼠标。若超过 20 秒仍未连接，拔插接收器后重试。
       </p>
 
       <div class="card-actions">
@@ -131,7 +129,7 @@ const statusText = computed(() => {
             :disabled="busy"
             @click="emit('refresh')"
           >
-            {{ busy ? "同步中…" : "重新同步" }}
+            {{ busy ? "连接中…" : "重新同步" }}
           </button>
           <button
             v-if="isReady"
