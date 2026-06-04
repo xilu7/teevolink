@@ -8,7 +8,7 @@ import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
 import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
 
 const router = useRouter();
-const { connect, autoConnectFromFactory, refresh, deviceOpen, isReady } = useDevice();
+const { connect, autoConnectFromFactory, syncDevice, deviceOpen, isReady } = useDevice();
 
 const busy = ref(false);
 const booting = ref(true);
@@ -16,7 +16,7 @@ const phase = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-f";
+const BUILD_TAG = "2026-06-04-g";
 
 const showGuide = computed(() => !deviceOpen.value);
 
@@ -62,9 +62,9 @@ function onPlusConnect() {
 
 async function onRefresh() {
   busy.value = true;
-  phase.value = "按工厂流程同步…";
+  phase.value = "同步中（约 20 秒）…";
   try {
-    const ok = await refresh();
+    const ok = await syncDevice(20);
     success.value = ok ? "参数已更新" : "仍未上线，请 2.4G 唤醒鼠标";
   } finally {
     busy.value = false;

@@ -153,7 +153,32 @@ export function useDevice() {
     }
   }
 
-  async function waitForMouseReady(maxSeconds = 60, onTick) {
+  /** 卡在「同步中」时：工厂 Device_Close → 重置状态 → Reconnect → Connect */
+  async function recoverStuckSession() {
+    try {
+      await HID.Device_Close();
+    } catch (e) {
+      console.warn("Device_Close", e);
+    }
+    await sleep(700);
+    HID.deviceInfo.connectState = HID.DeviceConectState.Disconnected;
+    await init();
+    return startHidSession();
+  }
+
+  async function waitForMouseReady(maxSeconds = 25, onTick) {
+    if (
+      HID.deviceInfo.connectState === HID.DeviceConectState.Connecting ||
+      HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut
+    ) {
+      const quick = await waitUntilReady(8);
+      if (quick) {
+        applySensorConfig();
+        return true;
+      }
+      await recoverStuckSession();
+    }
+
     if (!HID.deviceInfo.deviceOpen) {
       if (!(await startHidSession())) return false;
     }
@@ -163,18 +188,33 @@ export function useDevice() {
       return true;
     }
 
+    let recovered = false;
     for (let i = 0; i < maxSeconds; i++) {
       onTick?.(i + 1, maxSeconds);
       if (connected.value) {
         applySensorConfig();
         return true;
       }
+
+      if (
+        !recovered &&
+        i >= 10 &&
+        HID.deviceInfo.connectState === HID.DeviceConectState.Connecting
+      ) {
+        recovered = true;
+        await recoverStuckSession();
+      }
+
       if (HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut) {
-        await startHidSession();
+        await recoverStuckSession();
+        recovered = true;
       }
 
       const isOn = await checkMouseOnline();
-      if (isOn && HID.deviceInfo.connectState !== HID.DeviceConectState.Connecting) {
+      if (
+        isOn &&
+        HID.deviceInfo.connectState !== HID.DeviceConectState.Connecting
+      ) {
         try {
           await HID.Device_Connect();
         } catch (e) {
@@ -182,10 +222,38 @@ export function useDevice() {
         }
       }
 
-      if (await waitUntilReady(3000)) return true;
+      if (await waitUntilReady(2000)) return true;
       await sleep(1000);
     }
     return connected.value;
+  }
+
+  /** 用户点「同步设备 / 立即连接」— 带超时，避免一直「正在连接」 */
+  async function syncDevice(maxSeconds = 22) {
+    await init();
+
+    if (
+      connecting.value ||
+      HID.deviceInfo.connectState === HID.DeviceConectState.Connecting ||
+      HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut
+    ) {
+      await recoverStuckSession();
+    } else if (!HID.deviceInfo.deviceOpen) {
+      if (!(await startHidSession())) return false;
+    }
+
+    if (connected.value) {
+      applySensorConfig();
+      return true;
+    }
+
+    if (!(await checkMouseOnline())) return false;
+
+    if (HID.deviceInfo.connectState !== HID.DeviceConectState.Connecting) {
+      await HID.Device_Connect();
+    }
+
+    return waitForMouseReady(maxSeconds);
   }
 
   async function pollMouseOnline(maxSeconds = 60) {
@@ -197,29 +265,26 @@ export function useDevice() {
     return r.hasAuth && HID.deviceInfo.deviceOpen;
   }
 
-  async function recoverStuckSession() {
-    try {
-      await HID.Device_Close();
-    } catch (e) {
-      console.warn("Device_Close", e);
-    }
-    await sleep(800);
-    await init();
-    return startHidSession();
-  }
-
   async function ensureReady() {
     if (!HID.deviceInfo.deviceOpen) {
       if (!(await startHidSession())) return false;
     }
     if (connected.value) return true;
-    if (connecting.value) return await waitUntilReady(15000);
+
+    if (connecting.value) {
+      const ok = await waitUntilReady(8000);
+      if (ok) return true;
+      await recoverStuckSession();
+      if (!(await checkMouseOnline())) return false;
+      await HID.Device_Connect();
+      return await waitUntilReady(12000);
+    }
 
     const isOn = await checkMouseOnline();
     if (!isOn) return false;
 
     await HID.Device_Connect();
-    return await waitUntilReady(15000);
+    return await waitUntilReady(12000);
   }
 
   /**
@@ -348,13 +413,7 @@ export function useDevice() {
   }
 
   async function refresh() {
-    await init();
-    if (!(await startHidSession())) return false;
-    if (connected.value) {
-      applySensorConfig();
-      return true;
-    }
-    return waitForMouseReady(50);
+    return syncDevice(22);
   }
 
   async function bootDevicePage() {
@@ -411,6 +470,7 @@ export function useDevice() {
     openAuthorizedSession,
     disconnect,
     refresh,
+    syncDevice,
     ensureReady,
     bootDevicePage,
     pollMouseOnline,

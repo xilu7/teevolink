@@ -25,6 +25,8 @@ const {
   mouseCfg,
   disconnect,
   refresh,
+  syncDevice,
+  recoverStuckSession,
   bootDevicePage,
   waitForMouseReady,
   checkMouseOnline,
@@ -94,9 +96,11 @@ function startAutoPoll() {
     }
     pollSeconds.value += 2;
 
-    if (connecting.value && Date.now() - connectingWatchStart > 20000 && !syncWarned) {
+    if (connecting.value && Date.now() - connectingWatchStart > 12000 && !syncWarned) {
       syncWarned = true;
-      notify("同步时间较长：请晃动鼠标，再点一次「同步设备」");
+      notify("同步卡住，正在自动重置连接…");
+      await recoverStuckSession();
+      await syncDevice(15);
       return;
     }
 
@@ -152,19 +156,47 @@ async function onDisconnect() {
 }
 
 async function onRefresh() {
+  if (refreshing.value) {
+    notify("请勿连点，约 20 秒内完成");
+    return;
+  }
   refreshing.value = true;
   pollSeconds.value = 0;
   syncWarned = false;
   connectingWatchStart = Date.now();
+  notify("开始连接，请稍候…");
+  const guard = setTimeout(() => {
+    if (refreshing.value) {
+      notify("超过 25 秒，请拔插接收器后重试");
+    }
+  }, 25000);
   try {
-    const ok = await refresh();
+    const ok = await syncDevice(20);
     if (ok) {
-      notify("同步成功，修改将写入鼠标");
+      notify("已连接，现在可以改 DPI");
       stopAutoPoll();
+    } else if (online.value) {
+      notify("鼠标在线但同步失败：点「重置连接」或拔插 USB");
+      startAutoPoll();
     } else {
-      notify("仍未检测到鼠标上线，请按下方步骤操作");
+      notify("鼠标未上线：2.4G 档 + 打开电源 + 晃动鼠标");
       startAutoPoll();
     }
+  } catch (e) {
+    notify(e?.message || "连接异常");
+    startAutoPoll();
+  } finally {
+    clearTimeout(guard);
+    refreshing.value = false;
+  }
+}
+
+async function onForceReset() {
+  refreshing.value = true;
+  try {
+    await recoverStuckSession();
+    const ok = await syncDevice(18);
+    notify(ok ? "重置成功，已连接" : "重置后仍未连接，请检查 2.4G 与对码");
   } finally {
     refreshing.value = false;
   }
@@ -231,6 +263,15 @@ async function onPair() {
             @click="onRefresh"
           >
             {{ refreshing ? "正在连接…" : "立即连接鼠标" }}
+          </button>
+          <button
+            v-if="connecting"
+            type="button"
+            class="btn btn-secondary"
+            :disabled="refreshing"
+            @click="onForceReset"
+          >
+            重置连接
           </button>
           <button type="button" class="btn btn-secondary" @click="onPair">进入对码</button>
         </div>

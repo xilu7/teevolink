@@ -1283,6 +1283,8 @@ function battery_Handle_Exit() {
 
 function deviceInfo_Restore() {
   deviceInfo.deviceOpen = false;
+  deviceInfo.connectState = DeviceConectState.Disconnected;
+  deviceInfo.online = false;
   deviceInfo.version.device = "--";
   deviceInfo.version.dongle = "--";
 }

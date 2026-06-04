@@ -5,11 +5,16 @@ import { useSettingFeedback } from "./useSettingFeedback.js";
  * 包装 SDK 写操作：先 ensureReady，失败时提示用户唤醒鼠标
  */
 export function useHidAction() {
-  const { ensureReady } = useDevice();
+  const { ensureReady, syncDevice, connecting } = useDevice();
   const { notify } = useSettingFeedback();
 
   async function run(action, successMsg, failMsg) {
-    const ready = await ensureReady();
+    let ready = await ensureReady();
+    if (!ready && connecting.value) {
+      notify("同步卡住了，正在自动重置…");
+      await syncDevice(18);
+      ready = await ensureReady();
+    }
     if (!ready) {
       notify(
         failMsg ||
