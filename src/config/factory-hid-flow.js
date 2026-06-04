@@ -17,25 +17,28 @@ export const FACTORY_AUTO_RECONNECT = [
   "Device_Connect()",
 ];
 
+export const HOME_GUIDE_LEAD =
+  "按工厂 Web HID 流程操作，首次需授权；下次打开会自动连接，无需再点弹窗。";
+
 export const HOME_CONNECT_STEPS = [
   {
     step: 1,
-    title: "点击按钮连接设备",
-    desc: "2.4G + 接收器或 USB 有线",
+    title: "点击右上角 + 连接设备",
+    desc: "插入 RapidSync 接收器后，点顶栏圆形 + 按钮。",
   },
   {
     step: 2,
-    title: "点击选择设备",
-    desc: "选 RapidSync",
+    title: "在弹窗中选择设备",
+    desc: "选择 RapidSync（或列表中的接收器名称），不要选错其他 USB 设备。",
   },
   {
     step: 3,
-    title: "点击弹窗的连接",
-    desc: "允许 HID 一次即可",
+    title: "点击弹窗中的「连接」",
+    desc: "允许浏览器访问 HID 设备。只需授权一次。",
   },
   {
     step: 4,
-    title: "打开驱动设置",
-    desc: "调校 DPI / 回报率",
+    title: "连接成功后打开设置",
+    desc: "上方会出现 DPI、回报率、电量等；点「打开驱动设置」进入调校页。",
   },
 ];

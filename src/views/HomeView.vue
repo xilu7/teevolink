@@ -94,7 +94,9 @@ function openSettings() {
     <DriverAppTopbar
       logo-size="lg"
       active-nav="home"
+      :show-connect="!deviceOpen"
       :disconnect-busy="busy"
+      @connect="runConnect"
       @disconnect="onDisconnect"
     />
 

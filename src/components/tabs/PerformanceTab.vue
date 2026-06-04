@@ -1,6 +1,6 @@
 <script setup>
 
-import { computed, inject, ref, watch } from "vue";
+import { computed, inject, onUnmounted, ref, watch } from "vue";
 
 import { useDevice } from "@/composables/useDevice.js";
 
@@ -14,7 +14,7 @@ import DeviceSidePanel from "@/components/device/DeviceSidePanel.vue";
 
 
 
-const { HID, mouseCfg, deviceInfo, isReady } = useDevice();
+const { HID, mouseCfg, deviceInfo, isReady, connecting, deviceOpen } = useDevice();
 
 const { run } = useHidAction();
 
@@ -23,6 +23,40 @@ const sideStatus = computed(() => deviceStatus?.detail?.value ?? deviceStatus?.d
 const sideLoading = computed(
   () => !!(deviceStatus?.booting?.value || deviceStatus?.refreshing?.value)
 );
+
+/** 避免同步/boot 瞬间 isReady=false 时琥珀色条闪一下 */
+const showPreviewWarn = ref(false);
+let previewWarnTimer;
+
+function clearPreviewWarnTimer() {
+  if (previewWarnTimer) {
+    clearTimeout(previewWarnTimer);
+    previewWarnTimer = null;
+  }
+}
+
+watch(
+  () =>
+    isReady.value ||
+    connecting.value ||
+    sideLoading.value ||
+    !deviceOpen.value,
+  (suppress) => {
+    clearPreviewWarnTimer();
+    if (suppress) {
+      showPreviewWarn.value = false;
+      return;
+    }
+    previewWarnTimer = setTimeout(() => {
+      if (!isReady.value && deviceOpen.value && !connecting.value && !sideLoading.value) {
+        showPreviewWarn.value = true;
+      }
+    }, 700);
+  },
+  { immediate: true }
+);
+
+onUnmounted(clearPreviewWarnTimer);
 
 const PRESETS = PRODUCT.defaultDpiPresets;
 
@@ -254,10 +288,8 @@ async function setAngle(on) {
 
   <div class="perf-workspace driver-shell">
 
-    <p v-if="!isReady" class="tab-warn-compact perf-span-full">
-
+    <p v-if="showPreviewWarn" class="tab-warn-compact perf-span-full">
       预览模式：右上角显示「已连接」后设置才会写入鼠标。
-
     </p>
 
 

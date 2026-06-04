@@ -72,18 +72,18 @@ const signalOn = computed(() => isReady.value || online.value);
     </div>
 
     <div class="home-spec-card">
-      <div>
-        <div class="home-product-head">
-          <h2 class="home-product-name">{{ PRODUCT.name }}</h2>
+      <header class="home-product-block">
+        <h2 class="home-product-name">{{ PRODUCT.name }}</h2>
+        <p class="home-product-meta">
           <span
             class="home-product-signal"
             :class="{ on: signalOn }"
             title="连接状态"
           />
           <span class="home-product-status">{{ statusText }}</span>
-        </div>
+        </p>
         <p class="home-product-sub">{{ dongleTypeLabel }}</p>
-      </div>
+      </header>
 
       <dl class="home-spec-grid">
         <div class="home-spec-cell">
@@ -126,7 +126,7 @@ const signalOn = computed(() => isReady.value || online.value);
           <button
             v-if="isReady"
             type="button"
-            class="btn btn-primary"
+            class="btn btn-primary btn-home-cta"
             @click="emit('open-settings')"
           >
             打开驱动设置

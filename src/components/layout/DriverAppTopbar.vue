@@ -9,12 +9,13 @@ import { BUILD_TAG } from "@/config/build.js";
 
 const props = defineProps({
   logoSize: { type: String, default: "md" },
-  /** home | device — 高亮顶栏「首页」 */
   activeNav: { type: String, default: "" },
   disconnectBusy: { type: Boolean, default: false },
+  /** 首页未连接时显示顶栏 + 连接 */
+  showConnect: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["disconnect"]);
+const emit = defineEmits(["disconnect", "connect"]);
 
 const router = useRouter();
 const route = useRoute();
@@ -48,7 +49,7 @@ function onDisconnect() {
 </script>
 
 <template>
-  <AppTopbar :logo-size="logoSize">
+  <AppTopbar :logo-size="logoSize" :show-connect="showConnect" @connect="emit('connect')">
     <template v-if="activeNav" #nav>
       <span v-if="activeNav === 'home'" class="nav-active">首页</span>
     </template>

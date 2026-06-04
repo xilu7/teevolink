@@ -191,7 +191,7 @@ onMounted(async () => {
   clearTimeout(bootTimer);
   booting.value = false;
   if (ok) {
-    notify("鼠标已连接，可以修改设置");
+    wasReadyOnce.value = true;
     stopAutoPoll();
   } else {
     notify("接收器已就绪，请唤醒鼠标（见下方步骤）");
