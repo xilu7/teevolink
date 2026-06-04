@@ -3,8 +3,6 @@ import { computed } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
 import { PRODUCT } from "@/config/terra-pro.js";
 import MouseShowcase from "@/components/brand/MouseShowcase.vue";
-import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
-
 const props = defineProps({
   busy: { type: Boolean, default: false },
 });
@@ -23,12 +21,6 @@ const {
   connectStateLabel,
   isWired,
 } = useDevice();
-
-const activeDpi = computed(() => {
-  if (!isReady.value) return "—";
-  const i = getDpiStageIndex(mouseCfg.value);
-  return mouseCfg.value.dpis?.[i]?.value ?? "—";
-});
 
 const reportHz = computed(() =>
   isReady.value ? `${mouseCfg.value.reportRate} Hz` : "—"
@@ -74,10 +66,6 @@ const statusText = computed(() => {
       <p class="card-sub">{{ dongleTypeLabel }}</p>
 
       <dl v-if="deviceOpen" class="param-grid">
-        <div class="param-cell">
-          <dt>DPI</dt>
-          <dd>{{ activeDpi }}</dd>
-        </div>
         <div class="param-cell">
           <dt>回报率</dt>
           <dd>{{ reportHz }}</dd>
@@ -149,10 +137,10 @@ const statusText = computed(() => {
 <style scoped>
 .home-device-card {
   display: grid;
-  grid-template-columns: minmax(200px, 0.95fr) minmax(0, 1.4fr);
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: 12px;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 1.35fr);
+  gap: 1.25rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 14px;
   border: 1px solid var(--bd);
   background: var(--bg2);
   align-items: center;
@@ -167,12 +155,10 @@ const statusText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 0;
-  height: 100%;
-  max-height: 210px;
-  padding: 0.5rem 0.4rem;
-  border-radius: 10px;
-  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg2) 85%, var(--bg)) 100%);
+  min-height: 220px;
+  padding: 1rem 0.75rem;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg2) 75%, var(--bg)) 100%);
   border: 1px solid var(--bd);
 }
 .card-head {
@@ -183,7 +169,7 @@ const statusText = computed(() => {
   margin-bottom: 0.2rem;
 }
 .card-title {
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.03em;
@@ -211,9 +197,9 @@ const statusText = computed(() => {
 }
 .param-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
-  margin: 0 0 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
 }
 @media (max-width: 560px) {
   .param-grid {
@@ -243,7 +229,7 @@ const statusText = computed(() => {
 }
 .param-cell dd {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   font-weight: 700;
   color: var(--tx);
 }

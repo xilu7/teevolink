@@ -1,71 +1,94 @@
 <script setup>
-import { SUPPORTED_BROWSERS, UNSUPPORTED_BROWSER_NOTE } from "@/config/home-content.js";
+import {
+  SUPPORTED_BROWSERS,
+  UNSUPPORTED_BROWSER_NOTE,
+} from "@/config/home-content.js";
 import { PRODUCT } from "@/config/terra-pro.js";
 </script>
 
 <template>
-  <section class="home-support" aria-label="支持的浏览器">
-    <span class="support-label">环境</span>
-    <div class="support-chips">
-      <span v-for="b in SUPPORTED_BROWSERS" :key="b.id" class="chip ok">
+  <section class="home-env" aria-label="环境与支持浏览器">
+    <span class="env-label">环境</span>
+    <div class="env-tags">
+      <span
+        v-for="b in SUPPORTED_BROWSERS"
+        :key="b.id"
+        class="env-chip"
+      >
         {{ b.name }} {{ b.version }}
       </span>
-      <span class="chip product">{{ PRODUCT.name }}</span>
+      <span class="env-chip product">{{ PRODUCT.name }}</span>
     </div>
-    <span class="support-warn">{{ UNSUPPORTED_BROWSER_NOTE }}</span>
+    <p class="env-note">{{ UNSUPPORTED_BROWSER_NOTE }}</p>
   </section>
 </template>
 
 <style scoped>
-.home-support {
-  display: flex;
+.home-env {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.5rem 0.85rem;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
-  padding: 0.45rem 0.65rem;
-  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
   border: 1px solid var(--bd);
   background: var(--bg);
-  font-size: 0.68rem;
-  line-height: 1.35;
 }
-.support-label {
+.env-label {
+  grid-row: 1 / -1;
+  font-size: 0.72rem;
   font-weight: 800;
-  color: var(--tx3);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  flex-shrink: 0;
+  color: var(--tx3);
+  padding-right: 0.25rem;
+  border-right: 1px solid var(--bd);
+  padding-top: 0.15rem;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
 }
-.support-chips {
+.env-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  flex: 1;
+  gap: 0.4rem;
+  align-items: center;
 }
-.chip {
-  padding: 0.2rem 0.45rem;
-  border-radius: 6px;
-  border: 1px solid var(--bd);
-  background: var(--bg2);
+.env-chip {
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--tx2);
-}
-.chip.ok {
-  border-color: color-mix(in srgb, var(--acd) 35%, var(--bd));
   color: var(--tx);
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  white-space: nowrap;
 }
-.chip.product {
-  font-weight: 700;
+.env-chip.product {
+  background: color-mix(in srgb, var(--acd) 10%, var(--bg2));
+  border-color: color-mix(in srgb, var(--acd) 35%, var(--bd));
 }
-.support-warn {
-  width: 100%;
-  color: var(--tx3);
-  font-size: 0.64rem;
+.env-note {
+  grid-column: 2;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--amx);
+  line-height: 1.45;
 }
-@media (min-width: 720px) {
-  .support-warn {
-    width: auto;
-    margin-left: auto;
+@media (max-width: 640px) {
+  .home-env {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  .env-label {
+    grid-row: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--bd);
+    padding-bottom: 0.35rem;
+  }
+  .env-note {
+    grid-column: 1;
   }
 }
 </style>
