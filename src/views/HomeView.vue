@@ -27,7 +27,7 @@ async function onConnect() {
   try {
     const ok = await connect();
     if (ok) router.push("/device");
-    else error.value = "Could not connect. Check USB cable or 2.4GHz dongle, then try again.";
+    else error.value = "未找到设备：请插入 8K 接收器或 USB 线，在弹窗中选择 RapidSync，并换 USB 口重试。";
   } catch (e) {
     console.error(e);
     error.value = e?.message || "Connection failed.";
@@ -49,9 +49,13 @@ async function onConnect() {
       <ul class="feat-list">
         <li v-for="f in features" :key="f">{{ f }}</li>
       </ul>
+      <p class="dongle-hint">
+        无线请插入 <strong>8K 接收器</strong>（屏幕上可能显示 RapidSync）。弹窗里选中
+        <strong>RapidSync</strong> 或 2.4G Receiver，再点「连接」。
+      </p>
       <div class="actions">
         <button class="btn btn-primary" :disabled="busy" @click="onConnect">
-          {{ busy ? "Connecting…" : "Connect mouse" }}
+          {{ busy ? "正在连接…" : "连接鼠标" }}
         </button>
       </div>
       <p v-if="error" class="error">{{ error }}</p>
@@ -94,6 +98,12 @@ async function onConnect() {
   content: "✓ ";
   color: var(--ac);
   font-weight: 700;
+}
+.dongle-hint {
+  font-size: 0.9rem;
+  color: var(--tx2);
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 .actions {
   margin-bottom: 1rem;
