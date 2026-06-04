@@ -608,6 +608,7 @@ var deviceInfo = reactive({
       //sensor的配置
       cfg: {}, //读取sensor.json中当前sensor的配置，包括range,value(可能没有)
       type: "3950", //sensor型号
+      dpiEepromKind: "", // 实际 DPI 存储区：3950@0x0C 或 3955@0x1B00（连接后自动检测）
       lod: 1, //lod参数
       motionSync: false, //motionSync
       angle: false, //直线修正
@@ -3165,6 +3166,7 @@ async function Update_Device_Param() {
       }
     }
     /*2025.09.02 修改*/
+    deviceInfo.mouseCfg.sensor.dpiEepromKind = detectDpiEepromType();
     await Update_Mouse_Info();
     await Get_Mouse_KeyFunctions();
   } else if (deviceInfo.type == "keyboard" || deviceInfo.type == "officeKeyboard") {
@@ -3497,17 +3499,42 @@ function EepromValue_To_DPIValue(val, dpiEx) {
   return value;
 }
 
+/** 判断 DPI 存在哪段 EEPROM（Terra Pro 等 8K 固件多用 3955 区 0x1B00） */
+function detectDpiEepromType() {
+  for (var i = 0; i < 8; i++) {
+    var base3955 = MouseEepromAddr.Sensor3955DPI + i * 6;
+    if (check_crc(flashData, base3955, base3955 + 5)) return "3955";
+  }
+  for (var j = 0; j < 8; j++) {
+    var base3950 = MouseEepromAddr.DPIValue + j * 4;
+    if (check_crc(flashData, base3950, base3950 + 3)) return "3950";
+  }
+  return deviceInfo.mouseCfg.sensor.type == "3955" ? "3955" : "3950";
+}
+
+function dpiLayoutIs3955() {
+  if (deviceInfo.mouseCfg.sensor.dpiEepromKind == "3955") return true;
+  if (deviceInfo.mouseCfg.sensor.dpiEepromKind == "3950") return false;
+  return detectDpiEepromType() == "3955";
+}
+
+function refreshMouseDpiFromFlash() {
+  deviceInfo.mouseCfg.sensor.dpiEepromKind = detectDpiEepromType();
+  Update_Mouse_Dpi();
+}
+
 //更新鼠标DPI
 function Update_Mouse_Dpi() {
+  var dpiKind = deviceInfo.mouseCfg.sensor.dpiEepromKind || detectDpiEepromType();
   for (var i = 0; i < 8; i++) {
-    var addr = deviceInfo.mouseCfg.sensor.type == "3955" ? i * 6 + MouseEepromAddr.Sensor3955DPI : i * 4 + MouseEepromAddr.DPIValue;
-    var shift = deviceInfo.mouseCfg.sensor.type == "3955" ? 4 : 2;
+    var addr = dpiKind == "3955" ? i * 6 + MouseEepromAddr.Sensor3955DPI : i * 4 + MouseEepromAddr.DPIValue;
+    var shift = dpiKind == "3955" ? 4 : 2;
     var val = 0;
     var ex = flashData[addr + shift] & 0x03;
     var high = flashData[addr + shift] & 0x0c;
     high >>= 2;
 
-    if (deviceInfo.mouseCfg.sensor.type == "3955") {
+    if (dpiKind == "3955") {
       val = flashData[addr] + (flashData[addr + 1] << 8) + (high << 16);
     } else val = flashData[addr] + (high << 8);
 
@@ -3518,11 +3545,11 @@ function Update_Mouse_Dpi() {
     high = flashData[addr + shift] & 0xc0;
     high >>= 6;
 
-    if (deviceInfo.mouseCfg.sensor.type == "3955") {
+    if (dpiKind == "3955") {
       val = flashData[addr + 2] + (flashData[addr + 3] << 8) + (high << 16);
     } else val = flashData[addr + 1] + (high << 8);
 
-    console.log("Update_Mouse_Dpi", i, deviceInfo.mouseCfg.sensor.type, val);
+    console.log("Update_Mouse_Dpi", i, dpiKind, val);
 
     deviceInfo.mouseCfg.dpis[i].y = EepromValue_To_DPIValue(val, ex);
     deviceInfo.mouseCfg.dpis[i].color = UserConvert.Buffer_To_Color(flashData, i * 4 + MouseEepromAddr.DPIValue + 0x20);
@@ -3933,7 +3960,7 @@ async function Set_MS_DPIValue(index, value) {
   var flag = await Get_Device_Online_With_Dialog();
 
   if (flag == true) {
-    if (deviceInfo.mouseCfg.sensor.type == "3955") {
+    if (dpiLayoutIs3955()) {
       var addr = MouseEepromAddr.Sensor3955DPI + index * 6;
       var data = Uint8Array.of(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
@@ -3981,7 +4008,7 @@ async function Set_MS_DPIXYValue(index, valueX, valueY) {
   var flag = await Get_Device_Online_With_Dialog();
 
   if (flag == true) {
-    if (deviceInfo.mouseCfg.sensor.type == "3955") {
+    if (dpiLayoutIs3955()) {
       var addr = MouseEepromAddr.Sensor3955DPI + index * 6;
       var data = Uint8Array.of(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
@@ -3998,9 +4025,11 @@ async function Set_MS_DPIXYValue(index, valueX, valueY) {
 
       data[5] = get_Crc(data);
       console.log("Set_MS_DPIXYValue:", index, valueX, valueY, x, y);
-      await Set_Device_Eeprom_Array(addr, data);
-      deviceInfo.mouseCfg.dpis[index].x = deviceInfo.mouseCfg.dpis[index].value = valueX;
-      deviceInfo.mouseCfg.dpis[index].y = valueY;
+      flag = await Set_Device_Eeprom_Array(addr, data);
+      if (flag) {
+        deviceInfo.mouseCfg.dpis[index].x = deviceInfo.mouseCfg.dpis[index].value = valueX;
+        deviceInfo.mouseCfg.dpis[index].y = valueY;
+      }
     } else {
       var addr = MouseEepromAddr.DPIValue + index * 4;
       var data = Uint8Array.of(0x00, 0x00, 0x00, 0x00);
@@ -7273,6 +7302,10 @@ export default {
   driverOnlineFlag,
   historyDevicesInfos,
   hidDeviceChangeEvent,
+
+  detectDpiEepromType,
+  refreshMouseDpiFromFlash,
+  dpiLayoutIs3955,
 
   /*fllowing is define */
   DevicePairResult,

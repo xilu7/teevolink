@@ -19,6 +19,7 @@
 
 .driver-main {
   padding-top: 0.35rem;
+  padding-bottom: 1.25rem;
 }
 
 .driver-panel-wrap {
@@ -26,7 +27,7 @@
 }
 
 .driver-page {
-  padding-bottom: 5.5rem;
+  padding-bottom: 8.5rem;
 }
 
 /* —— 首页 —— */
@@ -190,7 +191,7 @@
 /* —— 设备页 Tab 内容 —— */
 .perf-workspace {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(176px, 200px);
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(200px, 228px);
   gap: var(--panel-gap);
   align-items: stretch;
 }
@@ -212,17 +213,24 @@
 .perf-visual-side {
   grid-column: 3;
   grid-row: 2 / 5;
-  padding: 0.55rem 0.65rem;
+  padding: 0.75rem 0.7rem;
   border-radius: var(--radius-panel);
   border: 1px solid var(--bd);
   background: var(--bg2);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 320px;
 }
 
 .perf-sensor-panel {
   margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.perf-workspace {
+  padding-bottom: 0.5rem;
 }
 
 .sensor-toggle-grid {

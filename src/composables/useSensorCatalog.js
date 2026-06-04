@@ -26,3 +26,15 @@ export async function ensureSensorConfig(type = PRODUCT.sensorType) {
   await loadSensorCatalog();
   return applySensorConfig(type);
 }
+
+/** 连接后按 Flash 检测 DPI 存储区，并刷新界面上的 DPI 读数 */
+export async function syncDpiSensorFromFlash() {
+  const kind = HID.detectDpiEepromType();
+  HID.deviceInfo.mouseCfg.sensor.dpiEepromKind = kind;
+  const ok = await ensureSensorConfig(kind);
+  if (ok) {
+    HID.deviceInfo.mouseCfg.sensor.type = kind;
+    HID.refreshMouseDpiFromFlash();
+  }
+  return kind;
+}

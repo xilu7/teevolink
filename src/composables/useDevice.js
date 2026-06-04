@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
-import { applySensorConfig, ensureSensorConfig } from "./useSensorCatalog.js";
+import { applySensorConfig, ensureSensorConfig, syncDpiSensorFromFlash } from "./useSensorCatalog.js";
 
 let hidListenersRegistered = false;
 
@@ -117,7 +117,7 @@ export function useDevice() {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {
-        applySensorConfig();
+        await syncDpiSensorFromFlash();
         return true;
       }
       if (HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut) {
@@ -177,7 +177,7 @@ export function useDevice() {
     const start = Date.now();
     while (Date.now() - start < maxMs) {
       if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {
-        applySensorConfig();
+        await syncDpiSensorFromFlash();
         return true;
       }
       if (HID.deviceInfo.connectState === HID.DeviceConectState.TimeOut) {
@@ -206,7 +206,7 @@ export function useDevice() {
     }
 
     if (connected.value) {
-      applySensorConfig();
+      await syncDpiSensorFromFlash();
       return true;
     }
 
@@ -410,7 +410,7 @@ export function useDevice() {
     await init();
     if (!(await startHidSession())) return false;
     if (connected.value) {
-      applySensorConfig();
+      await syncDpiSensorFromFlash();
       return true;
     }
     if (await checkMouseOnline() && !isStuckConnecting()) {

@@ -61,4 +61,19 @@ defineProps({
 .mouse-showcase.lg .mouse-fig img {
   max-height: 148px;
 }
+/** 设备页右侧栏：更大图、无文字标签 */
+.mouse-showcase.side {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.mouse-showcase.side .mouse-fig img {
+  max-height: 128px;
+}
+@media (min-width: 1100px) {
+  .mouse-showcase.side .mouse-fig img {
+    max-height: 148px;
+  }
+}
 </style>

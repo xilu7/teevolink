@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, provide, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
@@ -81,6 +81,12 @@ const statusLine = computed(() => {
     isReady.value ? `配置${profileLabel.value}` : null,
   ].filter(Boolean);
   return parts.join(" · ");
+});
+
+provide("deviceStatus", {
+  line: statusLine,
+  booting,
+  refreshing,
 });
 
 watch(connecting, (v) => {
@@ -224,13 +230,6 @@ async function onPair() {
       </template>
     </AppTopbar>
 
-    <div class="container status-strip">
-      <p class="status-line">
-        {{ booting ? "正在连接鼠标…" : refreshing ? "正在自动同步…" : statusLine }}
-      </p>
-      <span v-if="refreshing && !booting" class="sync-spinner" aria-hidden="true" />
-    </div>
-
     <div v-if="!booting && !isReady" class="container">
       <div class="connect-banner">
         <strong>接收器已连接，鼠标尚未上线</strong>
@@ -322,34 +321,6 @@ async function onPair() {
   white-space: nowrap;
 }
 
-.status-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  padding: 0.65rem 0 0.25rem;
-}
-.sync-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--bd);
-  border-top-color: var(--ac);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-.status-line {
-  font-size: 0.8rem;
-  color: var(--tx2);
-  flex: 1;
-  min-width: 200px;
-}
 .btn-sm {
   padding: 0.45rem 0.85rem;
   font-size: 0.82rem;

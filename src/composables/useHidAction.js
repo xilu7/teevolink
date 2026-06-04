@@ -1,5 +1,7 @@
 import { useDevice } from "./useDevice.js";
 import { useSettingFeedback } from "./useSettingFeedback.js";
+import { syncDpiSensorFromFlash } from "./useSensorCatalog.js";
+import HID from "@/sdk/dev_HIDHandle_05_27.js";
 
 /**
  * 包装 SDK 写操作：先 ensureReady，失败时提示用户唤醒鼠标
@@ -21,6 +23,9 @@ export function useHidAction() {
           "还不能写入鼠标：请保持 2.4G 或 USB 有线，并晃动鼠标直到右上角显示「已连接」"
       );
       return false;
+    }
+    if (!HID.deviceInfo.mouseCfg.sensor.dpiEepromKind) {
+      await syncDpiSensorFromFlash();
     }
     try {
       const result = await action();
