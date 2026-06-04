@@ -1,12 +1,12 @@
 <script setup>
 import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
+import GuidePointer from "@/components/home/GuidePointer.vue";
 </script>
 
 <template>
   <section class="home-guide" aria-label="连接引导">
     <header class="guide-head">
-      <h2 class="guide-title">首次连接 · 四步图文引导</h2>
-      <p class="guide-lead">按顺序操作即可；授权一次后，下次打开会自动记住设备。</p>
+      <h2 class="guide-title">首次连接 · 四步引导</h2>
     </header>
 
     <ol class="guide-grid">
@@ -19,29 +19,22 @@ import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
           </div>
         </div>
         <div class="guide-visual" :class="`visual-${s.step}`" aria-hidden="true">
-          <span class="hand" title="点击位置">👆</span>
+          <GuidePointer />
           <div v-if="s.step === 1" class="mock-card-connect">
-            <span class="mock-btn primary wide">连接设备</span>
+            <span class="mock-btn primary">连接设备</span>
           </div>
           <div v-else-if="s.step === 2" class="mock-hid-dialog">
-            <p class="mock-hid-title">teevolink 要连接 HID 设备</p>
             <div class="mock-hid-item on">
               <span class="mock-radio" />
               RapidSync
             </div>
-            <div class="mock-hid-item muted">其他设备…</div>
           </div>
           <div v-else-if="s.step === 3" class="mock-hid-dialog compact">
-            <div class="mock-hid-actions">
-              <span class="mock-btn ghost">取消</span>
-              <span class="mock-btn primary">连接</span>
-            </div>
+            <span class="mock-btn ghost">取消</span>
+            <span class="mock-btn primary">连接</span>
           </div>
           <div v-else class="mock-open-settings">
-            <div class="mock-device-row">
-              <span class="mock-mouse-icon" />
-              <span class="mock-btn primary wide">打开驱动设置</span>
-            </div>
+            <span class="mock-btn primary">打开驱动设置</span>
           </div>
         </div>
       </li>
@@ -51,60 +44,61 @@ import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
 
 <style scoped>
 .home-guide {
-  padding: 1rem 1.1rem 1.15rem;
-  border-radius: 14px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.5rem 0.6rem 0.55rem;
+  border-radius: 12px;
   border: 1px solid var(--bd);
   background: var(--bg);
 }
 .guide-head {
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
 }
 .guide-title {
-  font-size: 1.05rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  margin: 0 0 0.3rem;
-}
-.guide-lead {
-  font-size: 0.78rem;
-  color: var(--tx2);
   margin: 0;
-  line-height: 1.5;
 }
 .guide-grid {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
 }
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .guide-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 .guide-card {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.7rem 0.75rem;
-  border-radius: 12px;
+  gap: 0.3rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
   background: var(--bg2);
   border: 1px solid var(--bd);
-  min-height: 168px;
+  min-height: 0;
 }
 .guide-card-top {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: flex-start;
 }
 .guide-num {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   background: var(--tx);
   color: var(--bg);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -113,131 +107,112 @@ import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
 }
 .guide-copy strong {
   display: block;
-  font-size: 0.8rem;
-  margin-bottom: 0.2rem;
-  line-height: 1.35;
+  font-size: 0.68rem;
+  margin-bottom: 0.1rem;
+  line-height: 1.3;
   color: var(--tx);
 }
 .guide-copy p {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--tx3);
-  line-height: 1.45;
+  line-height: 1.35;
 }
 .guide-visual {
   position: relative;
   flex: 1;
-  min-height: 88px;
-  border-radius: 10px;
+  min-height: 52px;
+  max-height: 72px;
+  border-radius: 8px;
   background: var(--bg);
   border: 1px dashed var(--bd2);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
-  overflow: hidden;
+  padding: 0.35rem;
+  overflow: visible;
 }
-.hand {
+.guide-visual :deep(.guide-pointer) {
   position: absolute;
-  bottom: 6px;
-  right: 8px;
-  font-size: 1.1rem;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
-  pointer-events: none;
   z-index: 2;
 }
-.visual-1 .hand {
-  bottom: auto;
-  top: 8px;
-  right: 12px;
+.visual-1 :deep(.guide-pointer) {
+  top: 2px;
+  right: 8px;
+  transform: rotate(8deg);
 }
-.mock-card-connect {
-  width: 92%;
+.visual-2 :deep(.guide-pointer) {
+  bottom: 2px;
+  left: 38%;
+  transform: rotate(-25deg) scaleX(-1);
+}
+.visual-3 :deep(.guide-pointer) {
+  bottom: 4px;
+  right: 18%;
+  transform: rotate(12deg);
+}
+.visual-4 :deep(.guide-pointer) {
+  bottom: 2px;
+  right: 10%;
+  transform: rotate(-8deg);
+}
+.mock-card-connect,
+.mock-open-settings {
+  width: 100%;
   display: flex;
   justify-content: center;
 }
-.mock-card-connect .mock-btn.primary {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--acd) 35%, transparent);
-}
-.mock-hid-dialog {
-  width: 94%;
-  padding: 0.4rem 0.45rem;
-  border-radius: 8px;
-  border: 1px solid var(--bd);
-  background: #fff;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  font-size: 0.58rem;
-}
-.mock-hid-dialog.compact {
-  padding: 0.55rem;
-}
-.mock-hid-title {
-  margin: 0 0 0.35rem;
-  color: var(--tx2);
-  font-weight: 600;
-}
-.mock-hid-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.25rem;
-  border-radius: 4px;
-  color: var(--tx2);
-}
-.mock-hid-item.on {
-  background: color-mix(in srgb, var(--acd) 12%, #fff);
-  outline: 2px solid var(--acd);
-  font-weight: 700;
-  color: var(--tx);
-}
-.mock-hid-item.muted {
-  opacity: 0.45;
-  margin-top: 0.15rem;
-}
-.mock-radio {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 2px solid var(--acd);
-  background: var(--acd);
-}
-.mock-hid-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
 .mock-btn {
-  padding: 0.18rem 0.5rem;
+  padding: 0.22rem 0.5rem;
   border-radius: 5px;
   font-size: 0.58rem;
   font-weight: 700;
-}
-.mock-btn.ghost {
-  border: 1px solid var(--bd);
-  color: var(--tx3);
+  white-space: nowrap;
 }
 .mock-btn.primary {
   background: var(--tx);
   color: var(--bg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--acd) 30%, transparent);
 }
-.mock-btn.wide {
-  padding: 0.35rem 0.65rem;
-  font-size: 0.62rem;
+.mock-btn.ghost {
+  border: 1px solid var(--bd);
+  color: var(--tx3);
+  margin-right: 0.25rem;
 }
-.mock-open-settings {
-  width: 94%;
+.mock-hid-dialog {
+  width: 100%;
+  padding: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: #fff;
+  font-size: 0.55rem;
 }
-.mock-device-row {
+.mock-hid-dialog.compact {
   display: flex;
-  flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.2rem;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
-.mock-mouse-icon {
-  width: 48px;
-  height: 28px;
-  border-radius: 14px 14px 8px 8px;
-  background: linear-gradient(180deg, #333 0%, #111 100%);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+.mock-hid-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  font-weight: 700;
+  color: var(--tx);
+}
+.mock-hid-item.on {
+  background: color-mix(in srgb, var(--acd) 10%, #fff);
+  outline: 2px solid var(--acd);
+}
+.mock-radio {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acd);
 }
 </style>

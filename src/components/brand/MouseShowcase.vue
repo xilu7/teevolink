@@ -4,13 +4,19 @@ import { BRAND_ASSETS } from "@/config/brand.js";
 defineProps({
   size: { type: String, default: "md" },
   showLabels: { type: Boolean, default: false },
-  /** 仅正面大图（设备页侧栏） */
+  /** 仅正面大图（设备页侧栏 / 首页） */
   frontOnly: { type: Boolean, default: false },
+  /** 首页正面展示（更大、无标签） */
+  homeFront: { type: Boolean, default: false },
 });
 </script>
 
 <template>
-  <div v-if="frontOnly" class="mouse-showcase-front-only">
+  <div
+    v-if="frontOnly"
+    class="mouse-showcase-front-only"
+    :class="{ 'mouse-home-front': homeFront }"
+  >
     <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
   </div>
   <div v-else class="mouse-showcase" :class="size">
@@ -90,5 +96,20 @@ defineProps({
   width: 100%;
   max-height: 200px;
   object-fit: contain;
+}
+.mouse-showcase-front-only.mouse-home-front {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mouse-showcase-front-only.mouse-home-front img {
+  width: auto;
+  max-width: 100%;
+  max-height: min(200px, 24vh);
+  min-height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.2));
 }
 </style>

@@ -63,7 +63,7 @@ const statusText = computed(() => {
 <template>
   <section class="home-device-card">
     <div class="card-visual">
-      <MouseShowcase size="hero" show-labels />
+      <MouseShowcase front-only home-front />
     </div>
     <div class="card-body">
       <div class="card-head">
@@ -73,7 +73,7 @@ const statusText = computed(() => {
       </div>
       <p class="card-sub">{{ dongleTypeLabel }}</p>
 
-      <dl class="param-grid">
+      <dl v-if="deviceOpen" class="param-grid">
         <div class="param-cell">
           <dt>DPI</dt>
           <dd>{{ activeDpi }}</dd>
@@ -149,13 +149,13 @@ const statusText = computed(() => {
 <style scoped>
 .home-device-card {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(0, 1.35fr);
-  gap: 1.35rem;
-  padding: 1.2rem 1.35rem;
-  border-radius: 14px;
+  grid-template-columns: minmax(200px, 0.95fr) minmax(0, 1.4fr);
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
   border: 1px solid var(--bd);
   background: var(--bg2);
-  align-items: stretch;
+  align-items: center;
 }
 @media (max-width: 720px) {
   .home-device-card {
@@ -167,15 +167,13 @@ const statusText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 260px;
-  padding: 1rem 0.85rem;
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg2) 80%, var(--bg)) 100%);
+  min-height: 0;
+  height: 100%;
+  max-height: 210px;
+  padding: 0.5rem 0.4rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg2) 85%, var(--bg)) 100%);
   border: 1px solid var(--bd);
-}
-.card-visual :deep(.mouse-fig figcaption) {
-  font-size: 0.65rem;
-  letter-spacing: 0.14em;
 }
 .card-head {
   display: flex;
@@ -185,7 +183,7 @@ const statusText = computed(() => {
   margin-bottom: 0.2rem;
 }
 .card-title {
-  font-size: 1.65rem;
+  font-size: 1.35rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.03em;
@@ -214,8 +212,8 @@ const statusText = computed(() => {
 .param-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.45rem;
-  margin: 0 0 0.75rem;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
 }
 @media (max-width: 560px) {
   .param-grid {
@@ -245,7 +243,7 @@ const statusText = computed(() => {
 }
 .param-cell dd {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--tx);
 }
