@@ -100,7 +100,6 @@ const deviceStatusDetail = computed(() => {
     dpi: isReady.value && dpi != null ? dpi : null,
     hz: isReady.value ? mouseCfg.value.reportRate : null,
     profile: profileLabel.value,
-    dpiLayout: HID.deviceInfo.mouseCfg.sensor.dpiEepromKind || HID.detectDpiEepromType?.() || "",
     ready: isReady.value,
   };
 });
@@ -278,10 +277,10 @@ async function onPair() {
   <div class="driver-page driver-shell">
     <AppTopbar logo-size="sm">
       <template #meta>
-        <span class="driver-ver">2026-06-04-y</span>
+        <span class="driver-ver">2026-06-04-z</span>
       </template>
       <template #status>
-        <span class="sync-pill">
+        <span class="topbar-pill">
           <span class="sd" :class="statusDotClass" />
           {{ connectionText }}
         </span>
@@ -384,23 +383,6 @@ async function onPair() {
 </template>
 
 <style scoped>
-.sync-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--tx2);
-  padding: 0.35rem 0.55rem;
-  border-radius: 8px;
-  border: 1px solid var(--bd);
-  background: var(--bg2);
-  max-width: min(280px, 42vw);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .btn-sm {
   padding: 0.45rem 0.85rem;
   font-size: 0.82rem;

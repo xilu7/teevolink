@@ -1,0 +1,85 @@
+/* 顶栏控件：全局样式（slot 子组件无法继承 AppTopbar scoped） */
+
+.topbar-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.topbar-pill,
+.topbar-icon-btn {
+  box-sizing: border-box;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+  font-family: inherit;
+  line-height: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s,
+    transform 0.1s;
+}
+
+.topbar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--tx2);
+  cursor: default;
+  max-width: min(220px, 38vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tx2);
+  cursor: pointer;
+}
+
+.topbar-icon-btn:active {
+  transform: scale(0.96);
+}
+
+.topbar-icon-btn:hover {
+  border-color: var(--bd2);
+  color: var(--tx);
+  background: var(--bg);
+}
+
+.topbar-icon-btn.is-dark {
+  color: #e8a317;
+}
+
+.topbar-icon-btn.danger:hover {
+  color: #c62828;
+  border-color: color-mix(in srgb, #c62828 35%, var(--bd));
+  background: color-mix(in srgb, #c62828 8%, var(--bg2));
+}
+
+.topbar-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}

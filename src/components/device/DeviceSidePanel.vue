@@ -2,8 +2,15 @@
 import { computed } from "vue";
 import { BRAND_ASSETS } from "@/config/brand.js";
 
+const PROFILE_NAMES = ["竞技", "办公", "FPS", "自定义"];
+
+function profileLabel(n) {
+  const i = Number(n) - 1;
+  return PROFILE_NAMES[i] ?? `配置 ${n}`;
+}
+
 const props = defineProps({
-  /** { name, receiver, link, battery, dpi, hz, profile, dpiLayout } */
+  /** { name, receiver, link, battery, dpi, hz, profile } */
   status: { type: Object, default: null },
   loading: { type: Boolean, default: false },
 });
@@ -18,13 +25,7 @@ const chips = computed(() => {
     s.battery != null && s.battery !== "" ? { label: "电量", value: s.battery } : null,
     s.dpi != null ? { label: "DPI", value: String(s.dpi), accent: true } : null,
     s.hz != null ? { label: "回报率", value: `${s.hz} Hz` } : null,
-    s.profile != null ? { label: "配置", value: `配置 ${s.profile}` } : null,
-    s.dpiLayout
-      ? {
-          label: "DPI区",
-          value: s.dpiLayout === "3955" ? "3955·0x1B00" : "3950·0x0C",
-        }
-      : null,
+    s.profile != null ? { label: "场景", value: profileLabel(s.profile) } : null,
   ];
   return rows.filter(Boolean);
 });

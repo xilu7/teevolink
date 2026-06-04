@@ -24,29 +24,32 @@ const { isDark, toggleTheme } = useTheme();
       </div>
       <div class="app-topbar-end">
         <slot name="meta" />
-        <slot name="status" />
-        <button
-          v-if="showConnect"
-          type="button"
-          class="topbar-connect"
-          title="连接设备（Request_Device）"
-          @click="emit('connect')"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          class="topbar-icon-btn"
-          :class="{ 'is-dark': isDark }"
-          :title="isDark ? '切换为浅色' : '切换为深色'"
-          :aria-label="isDark ? '切换为浅色' : '切换为深色'"
-          @click="toggleTheme"
-        >
-          <IconSun v-if="isDark" />
-          <IconMoon v-else />
-        </button>
-        <div v-if="$slots.actions" class="topbar-actions">
-          <slot name="actions" />
+        <div class="topbar-cluster">
+          <slot name="status" />
+          <button
+            v-if="showConnect"
+            type="button"
+            class="topbar-icon-btn"
+            title="连接设备"
+            aria-label="连接设备"
+            @click="emit('connect')"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            class="topbar-icon-btn"
+            :class="{ 'is-dark': isDark }"
+            :title="isDark ? '切换为浅色' : '切换为深色'"
+            :aria-label="isDark ? '切换为浅色' : '切换为深色'"
+            @click="toggleTheme"
+          >
+            <IconSun v-if="isDark" />
+            <IconMoon v-else />
+          </button>
+          <div v-if="$slots.actions" class="topbar-actions">
+            <slot name="actions" />
+          </div>
         </div>
       </div>
     </div>
@@ -106,59 +109,5 @@ const { isDark, toggleTheme } = useTheme();
 }
 .topbar-link:hover {
   color: var(--tx);
-}
-.topbar-connect {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--bd2);
-  background: var(--bg2);
-  color: var(--tx);
-  font-size: 1.35rem;
-  font-weight: 300;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s;
-}
-.topbar-connect:hover {
-  border-color: var(--tx);
-  transform: scale(1.04);
-}
-.topbar-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--bd);
-  background: var(--bg2);
-  color: var(--tx2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-.topbar-icon-btn:hover {
-  border-color: var(--bd2);
-  color: var(--tx);
-  background: var(--bg);
-}
-.topbar-icon-btn.is-dark {
-  color: #e8a317;
-}
-.app-topbar-end :deep(.topbar-icon-btn.danger) {
-  color: var(--tx2);
-}
-.app-topbar-end :deep(.topbar-icon-btn.danger:hover) {
-  color: #c62828;
-  border-color: color-mix(in srgb, #c62828 35%, var(--bd));
-  background: color-mix(in srgb, #c62828 8%, var(--bg2));
-}
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
 }
 </style>

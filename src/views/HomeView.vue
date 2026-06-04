@@ -25,7 +25,7 @@ const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-y";
+const BUILD_TAG = "2026-06-04-z";
 
 const homeStatusText = computed(() => {
   if (!deviceOpen.value) return "";
@@ -114,7 +114,7 @@ function openSettings() {
         <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
       </template>
       <template v-if="deviceOpen" #status>
-        <span class="sync-pill home-sync-pill">
+        <span class="topbar-pill">
           <span class="sd" :class="isReady ? '' : online ? 'w' : 'e'" />
           {{ homeStatusText }}
         </span>
@@ -175,18 +175,6 @@ function openSettings() {
 </template>
 
 <style scoped>
-.home-sync-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--tx2);
-  padding: 0.35rem 0.55rem;
-  border-radius: 8px;
-  border: 1px solid var(--bd);
-  background: var(--bg2);
-}
 .home-main {
   padding: 1rem 0 2rem;
   display: flex;
