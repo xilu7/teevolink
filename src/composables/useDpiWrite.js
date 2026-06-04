@@ -13,7 +13,7 @@ function layoutKind() {
 /**
  * Terra Pro：仅 3950 区（0x0C）+ sensor.json 3950 步进表
  */
-export async function writeMouseDpi(index, dpi, stage) {
+export async function writeMouseDpi(index, dpi) {
   await syncDpiSensorFromFlash();
 
   const kind = layoutKind();
@@ -38,7 +38,11 @@ export async function writeMouseDpi(index, dpi, stage) {
   }
 
   await sleep(80);
-  const applied = await HID.Set_MS_CurrentDPI(stage);
+  if (index < 0 || index >= PRODUCT.defaultDpiStageCount) {
+    return { ok: false, error: `档位下标无效（0～${PRODUCT.defaultDpiStageCount - 1}）` };
+  }
+
+  const applied = await HID.Set_MS_CurrentDPI(index);
   if (applied === false) {
     return { ok: false, error: "应用当前档位失败" };
   }

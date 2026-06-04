@@ -7,6 +7,7 @@ import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
 import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
 import AppTopbar from "@/components/layout/AppTopbar.vue";
+import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
 
 const router = useRouter();
 const {
@@ -70,7 +71,7 @@ const statusDotClass = computed(() => {
 });
 
 const statusLine = computed(() => {
-  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
+  const i = getDpiStageIndex(mouseCfg.value);
   const dpi = mouseCfg.value.dpis?.[i]?.value ?? "—";
   const bat = battery.value?.level != null ? `${battery.value.level}%` : "";
   const parts = [
@@ -86,7 +87,7 @@ const statusLine = computed(() => {
 });
 
 const deviceStatusDetail = computed(() => {
-  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
+  const i = getDpiStageIndex(mouseCfg.value);
   const dpi = mouseCfg.value.dpis?.[i]?.value;
   return {
     name: PRODUCT.name,
@@ -255,7 +256,7 @@ async function onPair() {
   <div class="driver-page driver-shell">
     <AppTopbar logo-size="sm">
       <template #meta>
-        <span class="driver-ver">2026-06-04-t</span>
+        <span class="driver-ver">2026-06-04-u</span>
       </template>
       <template #status>
         <span class="sync-pill">

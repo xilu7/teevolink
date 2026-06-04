@@ -65,9 +65,9 @@ export const PRODUCT = {
   dpiMax: 42000,
   dpiStep: 50,
 
-  /** 出厂推荐五档（接收器屏显示例含 1600） */
-  defaultDpiPresets: [400, 800, 1600, 3200, 6400],
-  defaultDpiStageCount: 5,
+  /** Terra Pro 实物为 4 档 DPI（接收器屏循环 4 档） */
+  defaultDpiPresets: [400, 800, 1600, 3200],
+  defaultDpiStageCount: 4,
 
   /** 物理按键 6 个：左、右、中、前进、后退、DPI */
   buttons: 6,

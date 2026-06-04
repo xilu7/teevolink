@@ -14,7 +14,7 @@ const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-t";
+const BUILD_TAG = "2026-06-04-u";
 
 async function runConnect() {
   if (busy.value) return;

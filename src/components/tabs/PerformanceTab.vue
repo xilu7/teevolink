@@ -6,6 +6,7 @@ import { useDevice } from "@/composables/useDevice.js";
 
 import { useHidAction } from "@/composables/useHidAction.js";
 import { writeMouseDpi } from "@/composables/useDpiWrite.js";
+import { getDpiStageIndex, getDpiStageLabel } from "@/composables/useDpiStageIndex.js";
 
 import { PRODUCT } from "@/config/terra-pro.js";
 
@@ -51,14 +52,11 @@ const presetList = computed(() =>
 );
 
 const activeDpi = computed(() => {
-
-  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
-
+  const i = getDpiStageIndex(mouseCfg.value);
   return mouseCfg.value.dpis[i]?.value ?? 0;
-
 });
 
-const currentStage = computed(() => mouseCfg.value.currentDpi);
+const currentStage = computed(() => getDpiStageLabel(mouseCfg.value));
 
 const reportRate = computed(() => mouseCfg.value.reportRate);
 
@@ -94,14 +92,14 @@ function presetActive(item) {
   return currentStage.value === item.stage;
 }
 
-/** 每个预设对应固定档位（1～5），写入并切换到该档 */
+/** 每个预设对应固定档位（1～4），写入并切换到该档（SDK 当前档为 0 起算） */
 async function applyDpiPreset(item) {
   const dpi = Number(item.value);
   const stage = item.stage;
   const idx = item.index;
   await run(
     async () => {
-      const r = await writeMouseDpi(idx, dpi, stage);
+      const r = await writeMouseDpi(idx, dpi);
       if (!r.ok) {
         console.warn("writeMouseDpi", r);
         return false;
@@ -114,13 +112,12 @@ async function applyDpiPreset(item) {
 }
 
 async function setDpiFine(val) {
-  const idx = Math.max(0, (currentStage.value || 1) - 1);
-  const stage = Number(currentStage.value || 1);
+  const idx = getDpiStageIndex(mouseCfg.value);
   const dpi = Number(val);
   if (!Number.isFinite(dpi) || dpi < DPI_MIN || dpi > DPI_MAX) return;
   await run(
     async () => {
-      const r = await writeMouseDpi(idx, dpi, stage);
+      const r = await writeMouseDpi(idx, dpi);
       if (!r.ok) return false;
       return true;
     },

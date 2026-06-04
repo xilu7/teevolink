@@ -99,7 +99,7 @@ export async function syncDpiSensorFromFlash() {
   return detected;
 }
 
-/** 鼠标 Flash 常为 4 档，Terra Pro 产品固定 5 档预设 */
+/** Flash 档位数与 Terra Pro 实物不一致时，写回 4 档 */
 export async function ensureDpiStageCount() {
   const want = PRODUCT.defaultDpiStageCount;
   const have = Number(HID.deviceInfo.mouseCfg.maxDpiStage);

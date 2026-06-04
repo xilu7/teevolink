@@ -5,6 +5,7 @@ import HID from "@/sdk/dev_HIDHandle_05_27.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
 import { ensureSensorConfig, syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import { writeMouseDpi } from "@/composables/useDpiWrite.js";
+import { getDpiStageLabel } from "@/composables/useDpiStageIndex.js";
 import AppTopbar from "@/components/layout/AppTopbar.vue";
 
 const router = useRouter();
@@ -12,7 +13,7 @@ const logs = ref([]);
 const running = ref(false);
 
 const REPORT_ID = 0x08;
-const BUILD = "2026-06-04-t";
+const BUILD = "2026-06-04-u";
 
 const ADDR = {
   maxStage: 0x02,
@@ -160,7 +161,7 @@ async function runReadReport() {
     log("EEPROM 0x02 档位数 raw: " + flashSlice(ADDR.maxStage, 2));
     log("EEPROM 0x04 当前档 raw: " + flashSlice(ADDR.current, 2));
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < PRODUCT.defaultDpiStageCount; i++) {
       const a = ADDR.dpi0 + i * 4;
       const v = HID.deviceInfo.mouseCfg.dpis[i]?.value ?? "?";
       log(`档位 ${i + 1} @0x${a.toString(16)} raw[4]=${flashSlice(a, 4)} → UI ${v} DPI`);
@@ -181,7 +182,7 @@ async function runWriteTest(targetDpi, stageIndex) {
     if (!(await ensureSession())) return;
     const stage = stageIndex + 1;
     log(`—— 写入测试：档位 ${stage} → ${targetDpi} DPI ——`);
-    const r = await writeMouseDpi(stageIndex, targetDpi, stage);
+    const r = await writeMouseDpi(stageIndex, targetDpi);
     if (!r.ok) {
       log("writeMouseDpi 失败: " + (r.error || ""), false);
       return;
@@ -192,7 +193,10 @@ async function runWriteTest(targetDpi, stageIndex) {
     await syncDpiSensorFromFlash();
     const read = HID.deviceInfo.mouseCfg.dpis[stageIndex]?.value;
     const cur = HID.deviceInfo.mouseCfg.currentDpi;
-    log(`读回：档位${stage}=${read} DPI，当前档=${cur}`, read === targetDpi);
+    log(
+      `读回：槽位${stageIndex}(第${stage}档)=${read} DPI，currentDpi(raw)=${cur}，界面第${getDpiStageLabel(HID.deviceInfo.mouseCfg)}档`,
+      read === targetDpi
+    );
     if (read !== targetDpi) {
       log("读回不一致：可能写入失败或地址错误", false);
     }
@@ -219,6 +223,27 @@ async function runFixStages() {
     running.value = false;
   }
 }
+
+async function runFactoryPresets() {
+  running.value = true;
+  try {
+    if (!(await ensureSession())) return;
+    log("—— 写入出厂四档 " + PRODUCT.defaultDpiPresets.join(" / ") + " ——");
+    for (let i = 0; i < PRODUCT.defaultDpiStageCount; i++) {
+      const dpi = PRODUCT.defaultDpiPresets[i];
+      const r = await writeMouseDpi(i, dpi);
+      log(`档 ${i + 1} → ${dpi}: ` + (r.ok ? "OK" : r.error || "失败"), r.ok);
+      if (!r.ok) return;
+      await sleep(120);
+    }
+    await syncDpiSensorFromFlash();
+    log("完成，请按鼠标 DPI 键循环确认只有 4 档", true);
+  } catch (e) {
+    log("异常: " + (e?.message || e), false);
+  } finally {
+    running.value = false;
+  }
+}
 </script>
 
 <template>
@@ -233,14 +258,15 @@ async function runFixStages() {
         <button type="button" class="btn-diag" :disabled="running" @click="runReadReport">1. 读取现状</button>
         <button type="button" class="btn-diag" :disabled="running" @click="runWriteTest(800, 0)">2. 写档位1=800</button>
         <button type="button" class="btn-diag" :disabled="running" @click="runWriteTest(1600, 2)">3. 写档位3=1600</button>
-        <button type="button" class="btn-diag" :disabled="running" @click="runFixStages">4. 修正为5档</button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runFixStages">4. 修正为4档</button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runFactoryPresets">5. 写入出厂四档</button>
       </div>
       <pre class="log-box">{{ logs.join("\n") || "等待开始…" }}</pre>
       <p class="hint">
         <router-link to="/diag">通用连接诊断</router-link>
         ·
         <router-link to="/device">返回设备页</router-link>
-        · 版本应为 <strong>2026-06-04-t</strong>（日志 BUILD 行可见）
+        · 版本应为 <strong>2026-06-04-u</strong>（日志 BUILD 行可见）
       </p>
     </main>
   </div>

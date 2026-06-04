@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
 import { PRODUCT } from "@/config/terra-pro.js";
 import MouseShowcase from "@/components/brand/MouseShowcase.vue";
+import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
 
 const props = defineProps({
   busy: { type: Boolean, default: false },
@@ -25,7 +26,7 @@ const {
 
 const activeDpi = computed(() => {
   if (!isReady.value) return "—";
-  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
+  const i = getDpiStageIndex(mouseCfg.value);
   return mouseCfg.value.dpis?.[i]?.value ?? "—";
 });
 
