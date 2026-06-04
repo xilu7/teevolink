@@ -1781,7 +1781,7 @@ async function Send_HID_Buffer(data) {
     } else if (sendingFlag == false) {
       var check = true;
       var len = 3;
-      if (data[0] == 0x08) {
+      if (data[0] == 0x08 || data[0] == 0x07) {
         len = 5;
       }
 
@@ -1986,7 +1986,7 @@ async function Get_Device_Online_With_Dialog() {
     if (receivedData[5] === 1) return true;
     else {
       deviceInfo.online = false;
-      deviceInfo.showOfflineDialog = true;
+      if (driverOnlineFlag) deviceInfo.showOfflineDialog = true;
       return false;
     }
   }
@@ -3086,10 +3086,12 @@ async function Set_Device_Eeprom_Array(address, value) {
 
     data[15] = get_Crc(data) - ReportId;
 
+    Send_HID_Buffer_Timeout(450);
     result = await Send_HID_Buffer(data);
     if (result == false) {
       break;
     }
+    await sleep(12);
   }
 
   if (result) {
@@ -3110,6 +3112,7 @@ async function Set_Device_Eeprom_Value(address, value) {
   let crc = get_Crc(data);
   data[15] = crc - ReportId;
 
+  Send_HID_Buffer_Timeout(450);
   if (await Send_HID_Buffer(data)) {
     flashData[address] = value;
     flashData[address + 1] = data[6];
@@ -3499,17 +3502,28 @@ function EepromValue_To_DPIValue(val, dpiEx) {
   return value;
 }
 
-/** 判断 DPI 存在哪段 EEPROM（Terra Pro 等 8K 固件多用 3955 区 0x1B00） */
+/** 判断 DPI 存在哪段 EEPROM（8K RapidSync 固件固定用 3955 区 0x1B00） */
 function detectDpiEepromType() {
-  for (var i = 0; i < 8; i++) {
-    var base3955 = MouseEepromAddr.Sensor3955DPI + i * 6;
-    if (check_crc(flashData, base3955, base3955 + 5)) return "3955";
+  var is8k =
+    deviceInfo.maxReportRate >= 8000 ||
+    deviceInfo.info?.type === 0x05 ||
+    deviceInfo.info?.type === 0x03;
+  if (is8k) {
+    for (var i = 0; i < 8; i++) {
+      var base3955 = MouseEepromAddr.Sensor3955DPI + i * 6;
+      if (check_crc(flashData, base3955, base3955 + 5)) return "3955";
+    }
+    return "3955";
   }
   for (var j = 0; j < 8; j++) {
     var base3950 = MouseEepromAddr.DPIValue + j * 4;
     if (check_crc(flashData, base3950, base3950 + 3)) return "3950";
   }
-  return deviceInfo.mouseCfg.sensor.type == "3955" ? "3955" : "3950";
+  for (var k = 0; k < 8; k++) {
+    var b = MouseEepromAddr.Sensor3955DPI + k * 6;
+    if (check_crc(flashData, b, b + 5)) return "3955";
+  }
+  return "3950";
 }
 
 function dpiLayoutIs3955() {

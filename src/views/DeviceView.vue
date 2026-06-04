@@ -40,6 +40,8 @@ const { feedback, notify } = useSettingFeedback();
 const tab = ref("performance");
 const refreshing = ref(false);
 const booting = ref(true);
+const showConnectBanner = ref(false);
+const wasReadyOnce = ref(false);
 const pollSeconds = ref(0);
 let autoPollTimer = null;
 let connectingWatchStart = 0;
@@ -83,10 +85,40 @@ const statusLine = computed(() => {
   return parts.join(" · ");
 });
 
+const deviceStatusDetail = computed(() => {
+  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
+  const dpi = mouseCfg.value.dpis?.[i]?.value;
+  return {
+    name: PRODUCT.name,
+    receiver: dongleTypeLabel.value,
+    link: connectionText.value,
+    battery: battery.value?.level != null ? `${battery.value.level}%` : null,
+    dpi: isReady.value && dpi != null ? dpi : null,
+    hz: isReady.value ? mouseCfg.value.reportRate : null,
+    profile: profileLabel.value,
+    dpiLayout: HID.deviceInfo.mouseCfg.sensor.dpiEepromKind || HID.detectDpiEepromType?.() || "",
+    ready: isReady.value,
+  };
+});
+
 provide("deviceStatus", {
-  line: statusLine,
+  detail: deviceStatusDetail,
   booting,
   refreshing,
+});
+
+let bannerDebounceTimer;
+watch(isReady, (ready) => {
+  if (ready) {
+    wasReadyOnce.value = true;
+    showConnectBanner.value = false;
+    clearTimeout(bannerDebounceTimer);
+    return;
+  }
+  clearTimeout(bannerDebounceTimer);
+  bannerDebounceTimer = setTimeout(() => {
+    if (!isReady.value && !booting.value) showConnectBanner.value = true;
+  }, 2800);
 });
 
 watch(connecting, (v) => {
@@ -110,14 +142,17 @@ function startAutoPoll() {
       return;
     }
 
-    if (!isReady.value && deviceOpen.value && !refreshing.value) {
-      if (!connecting.value) {
-        refreshing.value = true;
-        try {
+    if (!isReady.value && deviceOpen.value && !refreshing.value && !connecting.value) {
+      refreshing.value = true;
+      try {
+        if (wasReadyOnce.value) {
+          const on = await checkMouseOnline();
+          if (on) await waitForMouseReady(8);
+        } else {
           await syncDevice(12);
-        } finally {
-          refreshing.value = false;
         }
+      } finally {
+        refreshing.value = false;
       }
     }
   }, 2000);
@@ -230,7 +265,7 @@ async function onPair() {
       </template>
     </AppTopbar>
 
-    <div v-if="!booting && !isReady" class="container">
+    <div v-if="showConnectBanner && !booting" class="container">
       <div class="connect-banner">
         <strong>接收器已连接，鼠标尚未上线</strong>
         <p>网页只能改<strong>已经唤醒并连上接收器</strong>的鼠标。仅插接收器、鼠标休眠时，界面是预览，改了也不会生效。</p>
@@ -329,7 +364,7 @@ async function onPair() {
   margin-bottom: 0.75rem;
   padding: 1rem 1.1rem;
   border-radius: var(--rl);
-  background: var(--aml);
+  background: var(--bg2);
   border: 1px solid var(--bd);
   font-size: 0.85rem;
   color: var(--tx2);
@@ -337,7 +372,7 @@ async function onPair() {
 }
 .connect-banner strong {
   display: block;
-  color: var(--amx);
+  color: var(--tx);
   margin-bottom: 0.35rem;
   font-size: 0.95rem;
 }

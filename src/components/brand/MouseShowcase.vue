@@ -2,15 +2,20 @@
 import { BRAND_ASSETS } from "@/config/brand.js";
 
 defineProps({
-  size: { type: String, default: "md" }, // sm | md | lg
+  size: { type: String, default: "md" },
   showLabels: { type: Boolean, default: false },
+  /** 仅正面大图（设备页侧栏） */
+  frontOnly: { type: Boolean, default: false },
 });
 </script>
 
 <template>
-  <div class="mouse-showcase" :class="size">
+  <div v-if="frontOnly" class="mouse-showcase-front-only">
+    <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
+  </div>
+  <div v-else class="mouse-showcase" :class="size">
     <figure class="mouse-fig">
-      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro 正面" loading="lazy" />
+      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
       <figcaption v-if="showLabels">正面</figcaption>
     </figure>
     <figure class="mouse-fig">
@@ -61,19 +66,15 @@ defineProps({
 .mouse-showcase.lg .mouse-fig img {
   max-height: 148px;
 }
-/** 设备页右侧栏：更大图、无文字标签 */
-.mouse-showcase.side {
-  flex: 1;
-  align-items: center;
+.mouse-showcase-front-only {
+  width: 100%;
+  display: flex;
   justify-content: center;
-  min-height: 0;
+  align-items: center;
 }
-.mouse-showcase.side .mouse-fig img {
-  max-height: 128px;
-}
-@media (min-width: 1100px) {
-  .mouse-showcase.side .mouse-fig img {
-    max-height: 148px;
-  }
+.mouse-showcase-front-only img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
 }
 </style>

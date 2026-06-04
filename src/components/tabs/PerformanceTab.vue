@@ -5,6 +5,7 @@ import { computed, inject } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
 
 import { useHidAction } from "@/composables/useHidAction.js";
+import { writeMouseDpi } from "@/composables/useDpiWrite.js";
 
 import { PRODUCT } from "@/config/terra-pro.js";
 
@@ -17,12 +18,10 @@ const { HID, mouseCfg, deviceInfo, isReady } = useDevice();
 const { run } = useHidAction();
 
 const deviceStatus = inject("deviceStatus", null);
-const sideStatusText = computed(() => {
-  if (!deviceStatus) return "";
-  if (deviceStatus.booting?.value) return "正在连接鼠标…";
-  if (deviceStatus.refreshing?.value) return "正在自动同步…";
-  return deviceStatus.line?.value ?? "";
-});
+const sideStatus = computed(() => deviceStatus?.detail?.value ?? deviceStatus?.detail ?? null);
+const sideLoading = computed(
+  () => !!(deviceStatus?.booting?.value || deviceStatus?.refreshing?.value)
+);
 
 const PRESETS = PRODUCT.defaultDpiPresets;
 
@@ -103,17 +102,15 @@ async function setDpiValue(val) {
   if (!Number.isFinite(dpi) || dpi < DPI_MIN || dpi > DPI_MAX) return;
   await run(
     async () => {
-      let wrote;
-      if (HID.dpiLayoutIs3955()) {
-        wrote = await HID.Set_MS_DPIXYValue(idx, dpi, dpi);
-      } else {
-        wrote = await HID.Set_MS_DPIValue(idx, dpi);
+      const r = await writeMouseDpi(idx, dpi, stage);
+      if (!r.ok) {
+        console.warn("writeMouseDpi", r);
+        return false;
       }
-      if (wrote === false) return false;
-      return await HID.Set_MS_CurrentDPI(stage);
+      return true;
     },
     `DPI ${dpi}`,
-    "DPI 写入失败，请晃动鼠标后重试"
+    "DPI 写入失败：请晃动鼠标，或拔插接收器后重试"
   );
 }
 
@@ -276,19 +273,13 @@ function onDpiSliderInput(v) {
         <label><span>精细调节</span><span>{{ activeDpi }}</span></label>
 
         <input
-
+          :key="'dpi-range-' + activeDpi + '-' + currentStage"
           :value="activeDpi"
-
           type="range"
-
           :min="DPI_MIN"
-
           :max="DPI_MAX"
-
           :step="DPI_STEP"
-
           @input="onDpiSliderInput($event.target.value)"
-
         />
 
       </div>
@@ -482,7 +473,7 @@ function onDpiSliderInput(v) {
 
 
     <aside class="perf-visual perf-visual-side">
-      <DeviceSidePanel :status-text="sideStatusText" />
+      <DeviceSidePanel :status="sideStatus" :loading="sideLoading" />
     </aside>
 
   </div>
