@@ -66,6 +66,20 @@ defineProps({
 .mouse-showcase.lg .mouse-fig img {
   max-height: 148px;
 }
+.mouse-showcase.hero {
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 0.65rem;
+  width: 100%;
+}
+.mouse-showcase.hero .mouse-fig:first-child img {
+  max-height: min(220px, 32vh);
+  min-height: 160px;
+}
+.mouse-showcase.hero .mouse-fig:last-child img {
+  max-height: min(170px, 26vh);
+  min-height: 120px;
+  opacity: 0.92;
+}
 .mouse-showcase-front-only {
   width: 100%;
   display: flex;

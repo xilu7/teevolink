@@ -1,259 +1,223 @@
-<script setup>
-import { ref, onMounted, computed } from "vue";
-import { useRouter } from "vue-router";
-import { useDevice } from "@/composables/useDevice.js";
-import { CONNECT_GUIDE } from "@/config/terra-pro.js";
-import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
-import AppTopbar from "@/components/layout/AppTopbar.vue";
-import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
-import IconUnplug from "@/components/icons/IconUnplug.vue";
-
-const router = useRouter();
-const {
-  connect,
-  syncDevice,
-  deviceOpen,
-  isReady,
-  online,
-  connecting,
-  isWired,
-  disconnect,
-} = useDevice();
-
-const busy = ref(false);
-const statusMsg = ref("");
-const error = ref("");
-const success = ref("");
-
-const BUILD_TAG = "2026-06-04-z";
-
-const homeStatusText = computed(() => {
-  if (!deviceOpen.value) return "";
-  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步中";
-  if (online.value) return "鼠标在线";
-  return "接收器已就绪";
-});
-
-async function onDisconnect() {
-  if (busy.value) return;
-  await disconnect();
-}
-
-onMounted(async () => {
-  if (deviceOpen.value && isReady.value) {
-    try {
-      await syncDpiSensorFromFlash();
-    } catch (e) {
-      console.warn("home syncDpi", e);
-    }
-  }
-});
-
-async function runConnect() {
-  if (busy.value) return;
-  error.value = "";
-  success.value = "";
-  if (!navigator.hid) {
-    error.value = "请使用 Chrome 89+ 或 Edge 89+。";
-    return;
-  }
-
-  busy.value = true;
-  statusMsg.value = "正在连接，首次可能需 30～60 秒，请勿关闭页面…";
-  try {
-    let ready = false;
-    let message = "";
-
-    if (deviceOpen.value) {
-      ready = await syncDevice();
-      message = ready
-        ? "已连接"
-        : "接收器已打开。请 2.4G 唤醒鼠标后再点一次";
-    } else {
-      const result = await connect();
-      if (result.status === "cancelled") {
-        error.value = result.message;
-        return;
-      }
-      if (result.status === "failed") {
-        error.value = result.message;
-        return;
-      }
-      ready = result.ready;
-      message = result.message;
-    }
-
-    if (ready) {
-      success.value = message || "已连接";
-      setTimeout(() => router.push("/device"), 500);
-    } else {
-      success.value = message;
-    }
-  } catch (e) {
-    error.value = e?.message || "连接失败";
-  } finally {
-    busy.value = false;
-    statusMsg.value = "";
-  }
-}
-
-function openSettings() {
-  router.push("/device");
-}
-
-</script>
-
-<template>
-  <div class="home-page driver-shell">
-    <AppTopbar logo-size="lg">
-      <template #nav>
-        <span class="nav-active">首页</span>
-      </template>
-      <template #meta>
-        <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
-      </template>
-      <template v-if="deviceOpen" #status>
-        <span class="topbar-pill">
-          <span class="sd" :class="isReady ? '' : online ? 'w' : 'e'" />
-          {{ homeStatusText }}
-        </span>
-      </template>
-      <template v-if="deviceOpen" #actions>
-        <button
-          type="button"
-          class="topbar-icon-btn danger"
-          title="断开连接"
-          aria-label="断开连接"
-          :disabled="busy"
-          @click="onDisconnect"
-        >
-          <IconUnplug />
-        </button>
-      </template>
-    </AppTopbar>
-
-    <main class="container home-main">
-      <p v-if="busy && statusMsg" class="home-status">{{ statusMsg }}</p>
-
-      <HomeDeviceCard
-        :busy="busy"
-        @connect="runConnect"
-        @open-settings="openSettings"
-        @refresh="runConnect"
-      />
-
-      <section v-if="!deviceOpen" class="home-hint">
-        <p><strong>首次使用：</strong>插入 RapidSync → 点「连接设备」→ 弹窗选 RapidSync → 允许。</p>
-        <p>鼠标请拨到 <strong>2.4G</strong>（或 USB 线直连），打开电源并晃动唤醒。</p>
-        <p>
-          <router-link to="/diag" class="diag-link">从未连成功？点这里做连接诊断</router-link>
-          ·
-          <router-link to="/diag/dpi" class="diag-link">DPI 改不动？DPI 诊断</router-link>
-        </p>
-      </section>
-
-      <section v-else class="home-tips">
-        <p class="tips-title">已记住浏览器授权</p>
-        <ul>
-          <li v-for="(line, i) in CONNECT_GUIDE" :key="i">{{ line }}</li>
-        </ul>
-        <p v-if="isReady" class="tips-go">已连接。点「打开驱动设置」改 DPI。</p>
-        <p v-else class="tips-warn">若 20 秒仍未连接：2.4G + 唤醒 → 点「重新同步」。</p>
-        <p>
-          <router-link to="/diag/dpi" class="diag-link">DPI 不生效或档位数不对？打开 DPI 专项诊断</router-link>
-        </p>
-      </section>
-
-      <p v-if="success" class="feedback success">{{ success }}</p>
-      <p v-if="error" class="feedback error">
-        {{ error }}
-        <button type="button" class="feedback-retry" @click="runConnect">重试</button>
-      </p>
-    </main>
-  </div>
-</template>
-
-<style scoped>
-.home-main {
-  padding: 1rem 0 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.home-status {
-  font-size: 0.92rem;
-  color: var(--tx2);
-  margin: 0;
-  padding: 0.55rem 0.75rem;
-  border-radius: 8px;
-  background: var(--bg2);
-  border: 1px solid var(--bd);
-}
-.home-hint {
-  padding: 0.9rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--bd);
-  background: var(--bg);
-  font-size: 0.92rem;
-  color: var(--tx2);
-  line-height: 1.55;
-}
-.home-hint p {
-  margin: 0 0 0.4rem;
-}
-.diag-link {
-  color: var(--gn);
-  font-weight: 700;
-  text-decoration: underline;
-}
-.home-tips {
-  padding: 0.85rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--bd);
-  background: var(--bg);
-  font-size: 0.88rem;
-  color: var(--tx2);
-  line-height: 1.5;
-}
-.tips-title {
-  font-weight: 700;
-  color: var(--tx);
-  margin: 0 0 0.4rem;
-}
-.home-tips ul {
-  margin: 0 0 0.5rem;
-  padding-left: 1.1rem;
-}
-.tips-go {
-  margin: 0.5rem 0 0;
-  color: var(--gn);
-  font-weight: 600;
-}
-.tips-warn {
-  margin: 0.5rem 0 0;
-  color: var(--amx);
-}
-.feedback {
-  font-size: 0.88rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: 8px;
-  margin: 0;
-}
-.feedback.success {
-  background: var(--gnl);
-  border: 1px solid var(--bd);
-}
-.feedback.error {
-  background: var(--rdl);
-  color: var(--rdx);
-  border: 1px solid var(--bd);
-}
-.feedback-retry {
-  margin-left: 0.5rem;
-  background: none;
-  border: none;
-  text-decoration: underline;
-  cursor: pointer;
-}
-</style>
+<script setup>
+import { ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useDevice } from "@/composables/useDevice.js";
+import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
+import AppTopbar from "@/components/layout/AppTopbar.vue";
+import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
+import HomeSupportNotice from "@/components/home/HomeSupportNotice.vue";
+import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
+import IconUnplug from "@/components/icons/IconUnplug.vue";
+
+const router = useRouter();
+const {
+  connect,
+  syncDevice,
+  deviceOpen,
+  isReady,
+  online,
+  connecting,
+  isWired,
+  disconnect,
+} = useDevice();
+
+const busy = ref(false);
+const statusMsg = ref("");
+const error = ref("");
+const success = ref("");
+
+const BUILD_TAG = "2026-06-05-a";
+
+const homeStatusText = computed(() => {
+  if (!deviceOpen.value) return "";
+  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
+  if (connecting.value) return "同步中";
+  if (online.value) return "鼠标在线";
+  return "接收器已就绪";
+});
+
+async function onDisconnect() {
+  if (busy.value) return;
+  await disconnect();
+}
+
+onMounted(async () => {
+  if (deviceOpen.value && isReady.value) {
+    try {
+      await syncDpiSensorFromFlash();
+    } catch (e) {
+      console.warn("home syncDpi", e);
+    }
+  }
+});
+
+async function runConnect() {
+  if (busy.value) return;
+  error.value = "";
+  success.value = "";
+  if (!navigator.hid) {
+    error.value = "请使用 Chrome 或 Edge 打开本页。";
+    return;
+  }
+
+  busy.value = true;
+  statusMsg.value = "正在连接，首次可能需 30～60 秒，请勿关闭页面…";
+  try {
+    let ready = false;
+    let message = "";
+
+    if (deviceOpen.value) {
+      ready = await syncDevice();
+      message = ready
+        ? "已连接"
+        : "接收器已打开。请 2.4G 唤醒鼠标后再点一次";
+    } else {
+      const result = await connect();
+      if (result.status === "cancelled") {
+        error.value = result.message;
+        return;
+      }
+      if (result.status === "failed") {
+        error.value = result.message;
+        return;
+      }
+      ready = result.ready;
+      message = result.message;
+    }
+
+    if (ready) {
+      success.value = message || "已连接";
+      setTimeout(() => router.push("/device"), 500);
+    } else {
+      success.value = message;
+    }
+  } catch (e) {
+    error.value = e?.message || "连接失败";
+  } finally {
+    busy.value = false;
+    statusMsg.value = "";
+  }
+}
+
+function openSettings() {
+  router.push("/device");
+}
+</script>
+
+<template>
+  <div class="home-page driver-shell">
+    <AppTopbar logo-size="lg">
+      <template #nav>
+        <span class="nav-active">首页</span>
+      </template>
+      <template #meta>
+        <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
+      </template>
+      <template v-if="deviceOpen" #status>
+        <span class="topbar-pill">
+          <span class="sd" :class="isReady ? '' : online ? 'w' : 'e'" />
+          {{ homeStatusText }}
+        </span>
+      </template>
+      <template v-if="deviceOpen" #actions>
+        <button
+          type="button"
+          class="topbar-icon-btn danger"
+          title="断开连接"
+          aria-label="断开连接"
+          :disabled="busy"
+          @click="onDisconnect"
+        >
+          <IconUnplug />
+        </button>
+      </template>
+    </AppTopbar>
+
+    <main class="container home-main">
+      <p v-if="busy && statusMsg" class="home-status">{{ statusMsg }}</p>
+
+      <HomeDeviceCard
+        :busy="busy"
+        @connect="runConnect"
+        @open-settings="openSettings"
+        @refresh="runConnect"
+      />
+
+      <HomeSupportNotice />
+
+      <HomeConnectGuide v-if="!deviceOpen" />
+
+      <section v-else-if="isReady" class="home-ready-tip">
+        <p>已连接。点「打开驱动设置」调整 DPI、回报率、LOD 等。</p>
+      </section>
+      <section v-else class="home-ready-tip warn">
+        <p>接收器已授权。请 2.4G 开机并晃动鼠标，再点「重新同步」。</p>
+      </section>
+
+      <p v-if="success" class="feedback success">{{ success }}</p>
+      <p v-if="error" class="feedback error">
+        {{ error }}
+        <button type="button" class="feedback-retry" @click="runConnect">重试</button>
+      </p>
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.home-main {
+  padding: 1rem 0 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 960px;
+}
+.home-status {
+  font-size: 0.92rem;
+  color: var(--tx2);
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+.home-ready-tip {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  font-size: 0.88rem;
+  color: var(--acd);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.home-ready-tip p {
+  margin: 0;
+}
+.home-ready-tip.warn {
+  color: var(--amx);
+  font-weight: 600;
+}
+.feedback {
+  font-size: 0.88rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  margin: 0;
+}
+.feedback.success {
+  background: var(--gnl);
+  border: 1px solid var(--bd);
+}
+.feedback.error {
+  background: var(--rdl);
+  color: var(--rdx);
+  border: 1px solid var(--bd);
+}
+.feedback-retry {
+  margin-left: 0.5rem;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+</style>
+

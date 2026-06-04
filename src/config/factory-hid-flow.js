@@ -25,21 +25,21 @@ export const HOME_CONNECT_STEPS = [
   {
     step: 1,
     title: "点击「连接设备」",
-    desc: "插入 RapidSync 接收器后，点设备卡片上的连接设备按钮。",
+    desc: "插入 RapidSync 接收器，鼠标拨到 2.4G 或 USB 有线，再点下方黑色按钮。",
   },
   {
     step: 2,
     title: "在弹窗中选择设备",
-    desc: "选择 RapidSync（或列表中的接收器名称），不要选错其他 USB 设备。",
+    desc: "勾选 RapidSync（接收器），不要选键盘、手柄等其他设备。",
   },
   {
     step: 3,
     title: "点击弹窗中的「连接」",
-    desc: "允许浏览器访问 HID 设备。只需授权一次。",
+    desc: "允许浏览器访问 HID。只需授权一次，下次会自动连接。",
   },
   {
     step: 4,
-    title: "连接成功后打开设置",
-    desc: "上方会出现 DPI、回报率、电量等；点「打开驱动设置」进入调校页。",
+    title: "点「打开驱动设置」",
+    desc: "连接成功后卡片会显示 DPI、回报率、电量；进入调校页改参数。",
   },
 ];

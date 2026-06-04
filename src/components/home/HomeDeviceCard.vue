@@ -63,7 +63,7 @@ const statusText = computed(() => {
 <template>
   <section class="home-device-card">
     <div class="card-visual">
-      <MouseShowcase size="md" />
+      <MouseShowcase size="hero" show-labels />
     </div>
     <div class="card-body">
       <div class="card-head">
@@ -149,13 +149,13 @@ const statusText = computed(() => {
 <style scoped>
 .home-device-card {
   display: grid;
-  grid-template-columns: minmax(160px, 0.85fr) minmax(0, 1.4fr);
-  gap: 1.25rem;
-  padding: 1.15rem 1.2rem;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 1.35fr);
+  gap: 1.35rem;
+  padding: 1.2rem 1.35rem;
   border-radius: 14px;
   border: 1px solid var(--bd);
   background: var(--bg2);
-  align-items: center;
+  align-items: stretch;
 }
 @media (max-width: 720px) {
   .home-device-card {
@@ -164,10 +164,18 @@ const statusText = computed(() => {
   }
 }
 .card-visual {
-  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  padding: 1rem 0.85rem;
   border-radius: 12px;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg2) 80%, var(--bg)) 100%);
   border: 1px solid var(--bd);
+}
+.card-visual :deep(.mouse-fig figcaption) {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
 }
 .card-head {
   display: flex;
