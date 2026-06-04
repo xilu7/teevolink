@@ -1,16 +1,12 @@
 /**
- * 品牌素材：源目录 d:\XILU文件\图片\AI
- * 更新官方图时覆盖 public/brand 下同名文件即可。
+ * 品牌素材 · 源目录 d:\XILU文件\图片\AI
+ * 顶栏使用官方 SVG 字标（仅 V 为品牌绿），勿用带绿边的圆形 PNG。
  */
 export const BRAND_ASSETS = {
-  logoMark: "/brand/logo-mark.png",
+  logoLight: "/brand/logo-light.svg",
+  logoDark: "/brand/logo-dark.svg",
   mouseFront: "/brand/mouse-front.png",
   mouseBack: "/brand/mouse-back.png",
-  /** 可选：侧视、宣传图 */
-  mouseSideLeft: "/brand/mouse-side-left.png",
-  mouseSideRight: "/brand/mouse-side-right.png",
-  heroPromo: "/brand/hero-promo.png",
 };
 
-/** 素材源路径说明（仅文档，不参与构建） */
 export const BRAND_SOURCE_DIR = "d:\\XILU文件\\图片\\AI";

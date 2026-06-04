@@ -1,9 +1,15 @@
-/* 紧凑高端驱动布局 — 对称分列、克制留白 */
+/**
+ * 驱动视觉语言（参考高端外设控制台）
+ * - 气质：冷静、精密、留白克制
+ * - 字体：系统无衬线 + 大写标签字间距
+ * - 色彩：黑白灰为主；品牌绿仅保留在官方 SVG 字标 V，不做大面积铺色
+ * - 节奏：区块卡片 12px 圆角、统一 1px 描边
+ */
 
 .driver-shell {
-  --driver-max: 1080px;
-  --panel-gap: 0.65rem;
-  --panel-pad: 0.85rem 0.95rem;
+  --driver-max: 1040px;
+  --panel-gap: 0.6rem;
+  --panel-pad: 0.8rem 0.9rem;
   --radius-panel: 12px;
 }
 

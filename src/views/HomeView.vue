@@ -2,125 +2,353 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
-import { useTheme } from "@/composables/useTheme.js";
-import { PRODUCT, CONNECT_GUIDE } from "@/config/terra-pro.js";
-import BrandLogo from "@/components/brand/BrandLogo.vue";
+import { PRODUCT } from "@/config/terra-pro.js";
+import AppTopbar from "@/components/layout/AppTopbar.vue";
 import MouseShowcase from "@/components/brand/MouseShowcase.vue";
 
 const router = useRouter();
 const { connect } = useDevice();
-const { isDark, toggleTheme } = useTheme();
+
 const busy = ref(false);
+const phase = ref("");
 const error = ref("");
+const success = ref("");
 
 const specs = [
   { label: "传感器", value: PRODUCT.sensorModel },
   { label: "主控", value: PRODUCT.mcu },
-  { label: "DPI 范围", value: `${PRODUCT.dpiMin} – ${PRODUCT.dpiMax}` },
+  { label: "DPI", value: `${PRODUCT.dpiMin} – ${PRODUCT.dpiMax}` },
   { label: "推荐档位", value: PRODUCT.defaultDpiPresets.join(" / ") },
-  { label: "按键", value: `${PRODUCT.buttons} 键（含 DPI）` },
-  { label: "连接", value: "蓝牙 · 2.4G · USB 有线" },
+  { label: "按键", value: `${PRODUCT.buttons} 键` },
+  { label: "连接", value: "蓝牙 · 2.4G · USB" },
+];
+
+const modules = [
+  { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
+  { title: "按键", desc: "6 键改键 · 宏" },
+  { title: "灯效与设备", desc: "RGB · 电源" },
 ];
 
 async function onConnect() {
   error.value = "";
+  success.value = "";
   if (!navigator.hid) {
-    error.value = "请使用 Chrome 89+ 或 Edge 89+。";
+    error.value = "请使用 Chrome 89+ 或 Edge 89+ 打开本页。";
     return;
   }
+
   busy.value = true;
   try {
-    const ok = await connect();
-    if (ok) router.push("/device");
-    else {
-      error.value =
-        "未找到设备：请 2.4G + RapidSync 或 USB 有线，弹窗选接收器并唤醒鼠标。";
+    const result = await connect({
+      maxPollSeconds: 18,
+      onPhase: (msg) => {
+        phase.value = msg;
+      },
+    });
+
+    if (result.status === "cancelled") {
+      error.value = result.message;
+      return;
     }
+
+    if (result.status === "failed") {
+      error.value = result.message;
+      return;
+    }
+
+    success.value = result.message;
+    await sleep(400);
+    router.push("/device");
   } catch (e) {
-    error.value = e?.message || "连接失败";
+    error.value = e?.message || "连接异常，请重试";
   } finally {
     busy.value = false;
+    phase.value = "";
   }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 </script>
 
 <template>
-  <div class="home-page driver-shell home-premium">
-    <header class="driver-topbar driver-topbar-premium">
-      <div class="container driver-topbar-inner">
-        <div class="driver-topbar-left brand-slot">
-          <BrandLogo size="lg" />
-          <span class="driver-pill active">TeevoLink</span>
+  <div class="home-page driver-shell">
+    <AppTopbar logo-size="lg" />
+
+    <main class="container home-main">
+      <section class="home-hero">
+        <div class="home-hero-copy">
+          <p class="section-label">无线游戏鼠标</p>
+          <h1 class="home-title">{{ PRODUCT.name }}</h1>
+          <p class="home-lead">
+            网页驱动 · 精密调校。请在 2.4G 或 USB 有线模式下连接 RapidSync 接收器。
+          </p>
         </div>
-        <button type="button" class="theme-btn driver-icon-btn" @click="toggleTheme">
-          {{ isDark ? "☀" : "☾" }}
-        </button>
-      </div>
-    </header>
+        <div class="home-hero-visual">
+          <MouseShowcase size="lg" />
+        </div>
+      </section>
 
-    <section class="container home-hero-grid">
-      <div class="home-copy">
-        <p class="home-eyebrow">{{ PRODUCT.brand.toUpperCase() }}</p>
-        <h1 class="home-product-title">{{ PRODUCT.name }}</h1>
-        <p class="home-product-sub">
-          网页驱动 · 紧凑调校 DPI、LOD、回报率与场景配置。三模鼠标请优先 2.4G 或有线连接。
-        </p>
-
-        <dl class="home-spec-grid">
-          <div v-for="s in specs" :key="s.label" class="home-spec-item">
+      <section class="home-block">
+        <h2 class="section-label">规格</h2>
+        <dl class="spec-matrix">
+          <div v-for="s in specs" :key="s.label" class="spec-cell">
             <dt>{{ s.label }}</dt>
             <dd>{{ s.value }}</dd>
           </div>
         </dl>
+      </section>
 
-        <ul class="home-connect-guide">
-          <li v-for="(line, i) in CONNECT_GUIDE" :key="i">{{ line }}</li>
-        </ul>
-
-        <div class="home-cta-row">
+      <section class="home-block home-connect-block">
+        <h2 class="section-label">连接</h2>
+        <p class="connect-hint">
+          插入接收器或 USB 线 → 点击按钮 → 在弹窗中选择 <strong>RapidSync</strong> → 晃动唤醒鼠标。
+        </p>
+        <div class="connect-actions">
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn-connect"
             :disabled="busy"
             @click="onConnect"
           >
-            {{ busy ? "正在连接…" : "连接设备" }}
+            {{ busy ? phase || "连接中…" : "连接设备" }}
           </button>
-          <span class="cta-note">无需安装 · Web HID</span>
+          <span class="connect-meta">Web HID · 无需安装</span>
         </div>
-        <p v-if="error" class="home-error">{{ error }}</p>
-      </div>
+        <p v-if="success" class="feedback success">{{ success }}</p>
+        <p v-if="error" class="feedback error">
+          {{ error }}
+          <button type="button" class="feedback-retry" @click="onConnect">重试</button>
+        </p>
+      </section>
 
-      <div class="home-visual">
-        <MouseShowcase size="lg" :show-labels="true" />
-      </div>
-    </section>
-
-    <section class="container home-modules">
-      <div class="home-module">
-        <strong>性能调校</strong>
-        场景 · DPI · LOD · 回报率
-      </div>
-      <div class="home-module">
-        <strong>按键</strong>
-        6 键改键 · 组合键与宏
-      </div>
-      <div class="home-module">
-        <strong>灯效与设备</strong>
-        RGB · 休眠 · 恢复出厂
-      </div>
-    </section>
+      <section class="home-block">
+        <h2 class="section-label">功能模块</h2>
+        <div class="module-row">
+          <article v-for="m in modules" :key="m.title" class="module-item">
+            <h3>{{ m.title }}</h3>
+            <p>{{ m.desc }}</p>
+          </article>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.cta-note {
-  font-size: 0.72rem;
-  color: var(--tx3);
+.home-main {
+  padding: 1.25rem 0 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
 }
-.home-error {
+
+.section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  margin: 0 0 0.55rem;
+}
+
+.home-block {
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.9fr);
+  gap: 1.25rem 1.5rem;
+  align-items: center;
+  padding: 1.1rem 1rem;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+@media (max-width: 780px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .home-hero-visual {
+    justify-self: center;
+  }
+}
+
+.home-title {
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin: 0 0 0.45rem;
+  color: var(--tx);
+}
+
+.home-lead {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--tx2);
+  max-width: 26rem;
+  margin: 0;
+}
+
+.home-hero-visual {
+  padding: 0.75rem;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.spec-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .spec-matrix {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.spec-cell {
+  padding: 0.5rem 0.55rem;
+  border-radius: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.spec-cell dt {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+  margin-bottom: 0.15rem;
+}
+
+.spec-cell dd {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tx);
+  margin: 0;
+}
+
+.connect-hint {
+  font-size: 0.8rem;
+  color: var(--tx2);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.connect-hint strong {
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.connect-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn-connect {
+  min-width: 9.5rem;
+  padding: 0.65rem 1.35rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--tx);
+  color: var(--bg);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.btn-connect:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.btn-connect:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.connect-meta {
+  font-size: 0.68rem;
+  color: var(--tx3);
+  letter-spacing: 0.04em;
+}
+
+.feedback {
+  margin: 0.65rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+}
+
+.feedback.success {
+  color: var(--tx);
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.feedback.error {
   color: var(--rdx);
-  font-size: 0.82rem;
-  margin-top: 0.55rem;
+  background: var(--rdl);
+  border: 1px solid var(--bd);
+}
+
+.feedback-retry {
+  margin-left: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tx);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.module-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+@media (max-width: 700px) {
+  .module-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.module-item {
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.module-item h3 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0 0 0.15rem;
+  color: var(--tx);
+}
+
+.module-item p {
+  font-size: 0.68rem;
+  color: var(--tx3);
+  margin: 0;
+  line-height: 1.4;
 }
 </style>

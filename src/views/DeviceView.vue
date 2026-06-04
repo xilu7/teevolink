@@ -2,12 +2,11 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
-import { useTheme } from "@/composables/useTheme.js";
 import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
 import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
 import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
-import BrandLogo from "@/components/brand/BrandLogo.vue";
+import AppTopbar from "@/components/layout/AppTopbar.vue";
 
 const router = useRouter();
 const {
@@ -31,7 +30,6 @@ const {
   enterPairMode,
   PRODUCT,
 } = useDevice();
-const { isDark, toggleTheme } = useTheme();
 const { feedback, notify } = useSettingFeedback();
 
 const tab = ref("performance");
@@ -166,24 +164,17 @@ async function onPair() {
 
 <template>
   <div class="driver-page driver-shell">
-    <header class="driver-topbar driver-topbar-premium">
-      <div class="container driver-topbar-inner">
-        <div class="driver-topbar-left brand-slot">
-          <BrandLogo size="sm" :show-wordmark="false" />
-          <button type="button" class="driver-pill" @click="goHome">主页</button>
-        </div>
-        <div class="driver-topbar-right">
-          <span class="sync">
-            <span class="sd" :class="statusDotClass" />
-            {{ connectionText }}
-          </span>
-          <button type="button" class="theme-btn" title="主题" @click="toggleTheme">
-            {{ isDark ? "☀" : "☾" }}
-          </button>
-          <button type="button" class="theme-btn" title="断开" @click="onDisconnect">⏻</button>
-        </div>
-      </div>
-    </header>
+    <AppTopbar logo-size="sm" show-home @home="goHome">
+      <template #status>
+        <span class="sync-pill">
+          <span class="sd" :class="statusDotClass" />
+          {{ connectionText }}
+        </span>
+      </template>
+      <template #actions>
+        <button type="button" class="topbar-icon" title="断开连接" @click="onDisconnect">⏻</button>
+      </template>
+    </AppTopbar>
 
     <div class="container status-strip">
       <p class="status-line">{{ booting ? "正在连接鼠标…" : statusLine }}</p>
@@ -250,6 +241,23 @@ async function onPair() {
 </template>
 
 <style scoped>
+.sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--tx2);
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+  max-width: min(280px, 42vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .status-strip {
   display: flex;
   align-items: center;
