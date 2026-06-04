@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
-import { applySensorConfig } from "@/composables/useSensorCatalog.js";
+import { ensureSensorConfig } from "@/composables/useSensorCatalog.js";
 import AppTopbar from "@/components/layout/AppTopbar.vue";
 
 const router = useRouter();
@@ -41,7 +41,12 @@ async function runFactoryDiag() {
     }
     log("浏览器支持 Web HID", true);
 
-    applySensorConfig(PRODUCT.sensorType);
+    const sensorOk = await ensureSensorConfig(PRODUCT.sensorType);
+    if (!sensorOk) {
+      log("sensor.json 未加载（无法解析 DPI）", false);
+      return;
+    }
+    log("sensor.json 已加载（3950 DPI 表）", true);
     HID.deviceInfo.type = "mouse";
     HID.visit = false;
     HID.Set_DriverOnline(false);
@@ -105,7 +110,8 @@ async function runFactoryDiag() {
         return;
       }
       if (st === HID.DeviceConectState.TimeOut) {
-        log("失败：同步超时 TimeOut", false);
+        const detail = HID.deviceInfo.lastSyncError ? `（${HID.deviceInfo.lastSyncError}）` : "";
+        log("失败：同步超时 TimeOut" + detail, false);
         return;
       }
       await new Promise((r) => setTimeout(r, 1000));

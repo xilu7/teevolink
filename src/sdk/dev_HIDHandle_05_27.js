@@ -552,6 +552,7 @@ var deviceInfo = reactive({
   profile: 0, //设备当前选择的配置
   isRestoring: false, //是否正在恢复出厂设置
   showOfflineDialog: false, //设备不在线的时候显示是否需要显示不在线窗体
+  lastSyncError: "", // 最近一次参数同步异常（网页诊断用）
   dongle4KRGB: {
     mode: 0,
     color1: "rgb(255,0,0)",
@@ -3375,6 +3376,7 @@ async function Get_Online_Interval() {
     }
 
     try {
+      deviceInfo.lastSyncError = "";
       await Update_Device_Param();
       await Get_Device_Profile();
       await Get_Device_Version();
@@ -3404,6 +3406,7 @@ async function Get_Online_Interval() {
       }
     } catch (error) {
       console.error("Get_Online_Interval", error);
+      deviceInfo.lastSyncError = String(error?.message || error);
       if (getFlashTimerID) {
         clearInterval(getFlashTimerID);
       }
@@ -3421,7 +3424,8 @@ function Get_Flash_Time_Tick() {
     console.error("Get_Flash_Time_Tick");
     if (deviceInfo.connectState == DeviceConectState.Connecting) {
       deviceInfo.connectState = DeviceConectState.TimeOut;
-      Device_Close();
+      deviceInfo.lastSyncError = deviceInfo.lastSyncError || "读 Flash 超过 30 秒";
+      if (driverOnlineFlag) Device_Close();
     }
   }
 }
@@ -3468,9 +3472,13 @@ function EepromValue_To_DPIValue(val, dpiEx) {
 
       console.log("updateMouseDpi", index, value);
     } else {
-      if (deviceInfo.mouseCfg.sensor.type == "OM76") value = value * deviceInfo.mouseCfg.sensor.cfg.range[0].step + (step100Flag == false ? deviceInfo.mouseCfg.sensor.cfg.range[0].min : 0);
-      else if (deviceInfo.mouseCfg.sensor.type == "S312") value = value * deviceInfo.mouseCfg.sensor.cfg.range[0].step;
-      else value = (value + 1) * deviceInfo.mouseCfg.sensor.cfg.range[0].step;
+      const range0 = deviceInfo.mouseCfg.sensor.cfg?.range?.[0];
+      if (!range0) {
+        const step = deviceInfo.mouseCfg.sensor.type === "3950" ? 50 : 100;
+        value = (value + 1) * step;
+      } else if (deviceInfo.mouseCfg.sensor.type == "OM76") value = value * range0.step + (step100Flag == false ? range0.min : 0);
+      else if (deviceInfo.mouseCfg.sensor.type == "S312") value = value * range0.step;
+      else value = (value + 1) * range0.step;
     }
   }
   if (doubleFlag) {

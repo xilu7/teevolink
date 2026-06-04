@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
-import { applySensorConfig, loadSensorCatalog } from "./useSensorCatalog.js";
+import { applySensorConfig, ensureSensorConfig } from "./useSensorCatalog.js";
 
 let hidListenersRegistered = false;
 
@@ -53,8 +53,7 @@ export function useDevice() {
   });
 
   async function init() {
-    await loadSensorCatalog();
-    applySensorConfig(PRODUCT.sensorType);
+    await ensureSensorConfig(PRODUCT.sensorType);
     HID.deviceInfo.type = "mouse";
     HID.visit = false;
     /** 工厂注释：网页驱动 Set_PC_Satae 暂时不用，避免多余指令干扰 */
