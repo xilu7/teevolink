@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { useTheme } from "@/composables/useTheme.js";
@@ -7,6 +7,7 @@ import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
 import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
 import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
+import BrandLogo from "@/components/brand/BrandLogo.vue";
 
 const router = useRouter();
 const {
@@ -16,13 +17,18 @@ const {
   deviceOpen,
   isReady,
   isAwaitingMouse,
+  online,
   battery,
   isWired,
+  dongleTypeLabel,
   deviceInfo,
   mouseCfg,
   disconnect,
   refresh,
   bootDevicePage,
+  pollMouseOnline,
+  recoverStuckSession,
+  enterPairMode,
   PRODUCT,
 } = useDevice();
 const { isDark, toggleTheme } = useTheme();
@@ -31,38 +37,79 @@ const { feedback, notify } = useSettingFeedback();
 const tab = ref("performance");
 const refreshing = ref(false);
 const booting = ref(true);
+const pollSeconds = ref(0);
+let autoPollTimer = null;
+let connectingWatchStart = 0;
 
 const tabs = [
-  { id: "performance", label: "性能调校", hint: "DPI · 回报率" },
-  { id: "buttons", label: "按键", hint: "改键 · 宏" },
-  { id: "device", label: "配置与灯效", hint: "场景 · 灯光" },
+  { id: "performance", label: "性能调校", hint: "场景 · DPI · LOD · 回报率" },
+  { id: "buttons", label: "按键", hint: "改键 · 组合键 · 宏" },
+  { id: "device", label: "灯效与设备", hint: "RGB · 休眠 · 恢复出厂" },
 ];
 
 const profileLabel = computed(() => (deviceInfo.profile ?? 0) + 1);
 
 const connectionText = computed(() => {
   if (!deviceOpen.value) return "未授权";
-  if (connecting.value) return "同步中…";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (isAwaitingMouse.value) return "等待鼠标上线";
-  return "未连接";
+  if (connecting.value) return "同步中…";
+  if (online.value) return "鼠标在线 · 同步配置";
+  return "等待鼠标上线";
 });
 
 const statusDotClass = computed(() => {
   if (isReady.value) return "";
-  if (connecting.value || isAwaitingMouse.value) return "w";
+  if (connecting.value || online.value) return "w";
   return "e";
 });
 
 const statusLine = computed(() => {
-  if (!isReady.value) return connectionText.value;
   const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
   const dpi = mouseCfg.value.dpis?.[i]?.value ?? "—";
   const bat = battery.value?.level != null ? `${battery.value.level}%` : "";
-  return [PRODUCT.name, connectionText.value, bat, `${dpi} DPI`, `${mouseCfg.value.reportRate} Hz`, `配置${profileLabel.value}`]
-    .filter(Boolean)
-    .join(" · ");
+  const parts = [
+    PRODUCT.name,
+    dongleTypeLabel.value,
+    connectionText.value,
+    bat,
+    isReady.value ? `${dpi} DPI` : null,
+    isReady.value ? `${mouseCfg.value.reportRate} Hz` : null,
+    isReady.value ? `配置${profileLabel.value}` : null,
+  ].filter(Boolean);
+  return parts.join(" · ");
 });
+
+watch(connecting, (v) => {
+  if (v) connectingWatchStart = Date.now();
+});
+
+function startAutoPoll() {
+  stopAutoPoll();
+  autoPollTimer = setInterval(async () => {
+    if (isReady.value) {
+      stopAutoPoll();
+      return;
+    }
+    pollSeconds.value += 2;
+
+    if (connecting.value && Date.now() - connectingWatchStart > 28000) {
+      notify("同步超时，正在自动重新连接…");
+      await recoverStuckSession();
+      return;
+    }
+
+    if (!connecting.value) {
+      await pollMouseOnline(3);
+    }
+  }, 2000);
+}
+
+function stopAutoPoll() {
+  if (autoPollTimer) {
+    clearInterval(autoPollTimer);
+    autoPollTimer = null;
+  }
+}
 
 onMounted(async () => {
   if (!HID.deviceInfo.deviceOpen) {
@@ -70,39 +117,59 @@ onMounted(async () => {
     return;
   }
   booting.value = true;
+  pollSeconds.value = 0;
   const ok = await bootDevicePage();
   booting.value = false;
-  if (!ok) {
-    notify("接收器已识别，请晃动鼠标唤醒后点「同步设备」");
+  if (ok) {
+    notify("鼠标已连接，可以修改设置");
+    stopAutoPoll();
+  } else {
+    notify("接收器已就绪，请唤醒鼠标（见下方步骤）");
+    startAutoPoll();
   }
 });
+
+onUnmounted(() => stopAutoPoll());
 
 function goHome() {
   router.push("/");
 }
 
 async function onDisconnect() {
+  stopAutoPoll();
   await disconnect();
   router.push("/");
 }
 
 async function onRefresh() {
   refreshing.value = true;
+  pollSeconds.value = 0;
   try {
     const ok = await refresh();
-    notify(ok ? "已与鼠标同步" : "同步失败：请晃动鼠标或重新插拔接收器");
+    if (ok) {
+      notify("同步成功，修改将写入鼠标");
+      stopAutoPoll();
+    } else {
+      notify("仍未检测到鼠标上线，请按下方步骤操作");
+      startAutoPoll();
+    }
   } finally {
     refreshing.value = false;
   }
 }
+
+async function onPair() {
+  const ok = await enterPairMode();
+  notify(ok ? "已进入对码模式，请同时操作鼠标侧对码键" : "对码指令发送失败");
+}
 </script>
 
 <template>
-  <div class="driver-page">
-    <header class="driver-topbar">
+  <div class="driver-page driver-shell">
+    <header class="driver-topbar driver-topbar-premium">
       <div class="container driver-topbar-inner">
-        <div class="driver-topbar-left">
-          <span class="brand-mark">T</span>
+        <div class="driver-topbar-left brand-slot">
+          <BrandLogo size="sm" :show-wordmark="false" />
           <button type="button" class="driver-pill" @click="goHome">主页</button>
         </div>
         <div class="driver-topbar-right">
@@ -133,15 +200,28 @@ async function onRefresh() {
     <div v-if="!booting && !isReady" class="container">
       <div class="connect-banner">
         <strong>接收器已连接，鼠标尚未上线</strong>
-        <p>
-          无线模式下请：<strong>晃动鼠标</strong>或按任意键唤醒 → 再点右上角「同步设备」。有线模式请确认 USB 已插紧。
+        <p>网页只能改<strong>已经唤醒并连上接收器</strong>的鼠标。仅插接收器、鼠标休眠时，界面是预览，改了也不会生效。</p>
+        <ol class="steps">
+          <li>
+            <strong>三模说明：</strong>Terra Pro 支持蓝牙 / 2.4G / USB 有线。网页调参请把底部开关拨到
+            <strong>2.4G</strong> 并插 RapidSync 接收器，或用 <strong>USB 线直连</strong>；蓝牙模式下浏览器通常无法写入参数。
+          </li>
+          <li><strong>无线 2.4G：</strong>打开电源 → 晃动或按左/右/中/DPI 键唤醒 → 等 5～10 秒 → 点「同步设备」。</li>
+          <li><strong>仍无效：</strong>靠近橙色接收器；接收器屏若显示断连图标，可点「进入对码」后按接收器顶部键与鼠标底部小键配对。</li>
+          <li><strong>有线：</strong>数据线连电脑后同样点「同步设备」，一般比 2.4G 更容易显示「已连接 · 有线」。</li>
+        </ol>
+        <p class="diag">
+          检测：{{ dongleTypeLabel }} · 鼠标在线信号 {{ online ? "有" : "无" }}
+          <span v-if="pollSeconds"> · 已等待 {{ pollSeconds }} 秒（自动检测中）</span>
         </p>
+        <div class="banner-actions">
+          <button type="button" class="btn btn-secondary" @click="onPair">进入对码</button>
+        </div>
       </div>
     </div>
 
     <main class="container driver-main">
-      <p class="tab-intro">{{ tabs.find((t) => t.id === tab)?.hint }}</p>
-
+      <p class="tab-intro-compact">{{ tabs.find((t) => t.id === tab)?.hint }}</p>
       <div class="driver-panel-wrap">
         <PerformanceTab v-if="tab === 'performance'" />
         <ButtonsTab v-else-if="tab === 'buttons'" />
@@ -190,7 +270,7 @@ async function onRefresh() {
 }
 .connect-banner {
   margin-bottom: 0.75rem;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.1rem;
   border-radius: var(--rl);
   background: var(--aml);
   border: 1px solid var(--bd);
@@ -202,6 +282,22 @@ async function onRefresh() {
   display: block;
   color: var(--amx);
   margin-bottom: 0.35rem;
+  font-size: 0.95rem;
+}
+.steps {
+  margin: 0.65rem 0 0.65rem 1.1rem;
+  padding: 0;
+}
+.steps li {
+  margin-bottom: 0.35rem;
+}
+.diag {
+  font-size: 0.78rem;
+  color: var(--tx3);
+  margin: 0.5rem 0;
+}
+.banner-actions {
+  margin-top: 0.5rem;
 }
 .tab-intro {
   font-size: 0.85rem;

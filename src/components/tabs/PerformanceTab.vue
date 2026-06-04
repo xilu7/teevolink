@@ -1,148 +1,187 @@
 <script setup>
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
 import { useHidAction } from "@/composables/useHidAction.js";
-import SettingCard from "@/components/ui/SettingCard.vue";
-import HelpTip from "@/components/ui/HelpTip.vue";
+import { PRODUCT } from "@/config/terra-pro.js";
+import MouseShowcase from "@/components/brand/MouseShowcase.vue";
 
 const { HID, mouseCfg, deviceInfo, isReady } = useDevice();
 const { run } = useHidAction();
 
-const showAdvanced = ref(false);
-const PRESETS = [400, 800, 1200, 1600, 2400, 3200, 6400];
+const PRESETS = PRODUCT.defaultDpiPresets;
+const DPI_MIN = PRODUCT.dpiMin;
+const DPI_MAX = PRODUCT.dpiMax;
+const DPI_STEP = PRODUCT.dpiStep;
+const LOD_LEVELS = PRODUCT.lodLevels;
+const profileNames = ["竞技", "办公", "FPS", "自定义"];
 const reportRates = [125, 250, 500, 1000, 2000, 4000, 8000];
-const maxHz = computed(() => deviceInfo.maxReportRate || 8000);
 
+const maxHz = computed(() => deviceInfo.maxReportRate || PRODUCT.maxReportRate);
 const maxStage = computed(() => mouseCfg.value.maxDpiStage);
-
 const activeDpi = computed(() => {
   const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
   return mouseCfg.value.dpis[i]?.value ?? 0;
 });
-
 const currentStage = computed(() => mouseCfg.value.currentDpi);
-
 const reportRate = computed(() => mouseCfg.value.reportRate);
 const sensor = computed(() => mouseCfg.value.sensor);
+const currentLodLabel = computed(() => {
+  const lod = sensor.value.lod;
+  const item = LOD_LEVELS.find((l) => l.value === lod);
+  return item ? `${item.label} · ${item.height}` : `档位 ${lod}`;
+});
+
+async function setProfile(n) {
+  await run(
+    () => HID.Set_Device_Profile(Number(n)),
+    `场景：${profileNames[n] || "配置 " + (n + 1)}`
+  );
+}
 
 async function setStage(v) {
-  await run(() => HID.Set_MS_CurrentDPI(Number(v)), `已切换到第 ${v} 档`);
+  await run(() => HID.Set_MS_CurrentDPI(Number(v)), `第 ${v} 档`);
 }
 
 async function setDpiValue(val) {
   const idx = Math.max(0, currentStage.value - 1);
-  await run(() => HID.Set_MS_DPIValue(idx, Number(val)), `本档 DPI：${val}`);
+  await run(() => HID.Set_MS_DPIValue(idx, Number(val)), `DPI ${val}`);
 }
 
 async function setMaxStages(n) {
-  await run(() => HID.Set_MS_MaxDPI(Number(n)), `DPI 档位数：${n}`);
+  await run(() => HID.Set_MS_MaxDPI(Number(n)), `${n} 档`);
 }
 
 async function setRate(hz) {
   if (hz > maxHz.value) return;
-  await run(() => HID.Set_MS_ReportRate(hz), `回报率：${hz} Hz`);
+  await run(() => HID.Set_MS_ReportRate(hz), `${hz} Hz`);
 }
 
 async function setLod(v) {
-  await run(() => HID.Set_MS_LOD(Number(v)), `LOD 档位 ${v}`);
+  const item = LOD_LEVELS.find((l) => l.value === Number(v));
+  await run(
+    () => HID.Set_MS_LOD(Number(v)),
+    item ? `LOD ${item.label}` : `LOD ${v}`
+  );
 }
 
 async function setMotionSync(on) {
-  await run(
-    () => HID.Set_MS_MotionSync(on ? 1 : 0),
-    on ? "已开启移动同步" : "已关闭移动同步"
-  );
+  await run(() => HID.Set_MS_MotionSync(on ? 1 : 0), on ? "移动同步开" : "移动同步关");
 }
 
 async function setAngle(on) {
-  await run(
-    () => HID.Set_MS_Angle(on ? 1 : 0),
-    on ? "已开启直线修正" : "已关闭直线修正"
-  );
+  await run(() => HID.Set_MS_Angle(on ? 1 : 0), on ? "直线修正开" : "直线修正关");
 }
 </script>
 
 <template>
-  <div class="tab-stack">
-    <p v-if="!isReady" class="tab-warn">
-      当前仅预览界面数值。要写入鼠标请先让右上角显示「已连接」，或点击下方提示中的「同步设备」。
+  <div class="perf-workspace driver-shell">
+    <p v-if="!isReady" class="tab-warn-compact perf-span-full">
+      预览模式：右上角显示「已连接」后设置才会写入鼠标。
     </p>
 
-    <SettingCard title="DPI 灵敏度" badge="基础">
-      <template #desc>
-        <HelpTip
-          text="DPI（CPI）决定指针移动速度。改完后可用鼠标侧键或专用键切换档位验证是否生效。"
-        />
-      </template>
-
-      <div class="live-value">
-        <span class="live-label">当前生效</span>
-        <strong class="live-num">{{ activeDpi }}</strong>
-        <span class="live-unit">DPI · 第 {{ currentStage }} / {{ maxStage }} 档</span>
+    <section class="panel-compact perf-span-full">
+      <header class="panel-compact-head">
+        <h3>场景配置</h3>
+        <span class="panel-badge">板载</span>
+      </header>
+      <p class="panel-hint">独立保存 DPI、改键与灯效，切换后立即生效。</p>
+      <div class="profile-strip">
+        <button
+          v-for="n in 4"
+          :key="n"
+          type="button"
+          class="profile-pill"
+          :class="{ active: deviceInfo.profile === n - 1 }"
+          @click="setProfile(n - 1)"
+        >
+          <span class="num">{{ n }}</span>
+          <span class="tag">{{ profileNames[n - 1] }}</span>
+        </button>
       </div>
+    </section>
 
-      <div class="driver-dpi-presets">
+    <section class="panel-compact">
+      <header class="panel-compact-head">
+        <h3>DPI</h3>
+        <span class="panel-badge">主</span>
+      </header>
+      <div class="dpi-hero-num">
+        <strong>{{ activeDpi }}</strong>
+        <span>第 {{ currentStage }} / {{ maxStage }} 档 · {{ DPI_STEP }} 步进</span>
+      </div>
+      <div class="chip-row">
         <button
           v-for="p in PRESETS"
           :key="p"
           type="button"
-          class="driver-chip"
+          class="chip-btn"
           :class="{ active: activeDpi === p }"
           @click="setDpiValue(p)"
         >
           {{ p }}
         </button>
       </div>
-
-      <div class="driver-slider-wrap">
-        <label class="driver-stat-label">精细调节（当前档）</label>
+      <div class="compact-slider">
+        <label><span>精细调节</span><span>{{ activeDpi }}</span></label>
         <input
           :value="activeDpi"
           type="range"
-          min="200"
-          max="26000"
-          step="50"
+          :min="DPI_MIN"
+          :max="DPI_MAX"
+          :step="DPI_STEP"
           @change="setDpiValue($event.target.value)"
         />
       </div>
-
-      <div class="driver-slider-wrap">
-        <label class="driver-stat-label">可用档位数</label>
-        <input
-          :value="maxStage"
-          type="range"
-          min="1"
-          max="8"
-          @change="setMaxStages($event.target.value)"
-        />
-        <HelpTip text="决定侧键可循环切换的 DPI 档数量。" />
+      <div class="side-rail" style="margin-top: 0.5rem">
+        <div class="compact-slider">
+          <label><span>档位数</span><span>{{ maxStage }}</span></label>
+          <input
+            :value="maxStage"
+            type="range"
+            min="1"
+            :max="PRODUCT.maxDpiStages"
+            @change="setMaxStages($event.target.value)"
+          />
+        </div>
+        <div class="compact-slider">
+          <label><span>当前档</span><span>{{ currentStage }}</span></label>
+          <input
+            :value="currentStage"
+            type="range"
+            min="1"
+            :max="maxStage"
+            @change="setStage($event.target.value)"
+          />
+        </div>
       </div>
+    </section>
 
-      <div class="driver-slider-wrap">
-        <label class="driver-stat-label">切换当前档位</label>
-        <input
-          :value="currentStage"
-          type="range"
-          min="1"
-          :max="maxStage"
-          @change="setStage($event.target.value)"
-        />
+    <section class="panel-compact">
+      <header class="panel-compact-head">
+        <h3>LOD · 回报率</h3>
+        <span class="panel-badge">主</span>
+      </header>
+      <p class="panel-hint lod-hint">当前 LOD：<strong>{{ currentLodLabel }}</strong></p>
+      <div class="chip-row" style="margin-bottom: 0.55rem">
+        <button
+          v-for="lod in LOD_LEVELS"
+          :key="lod.value"
+          type="button"
+          class="chip-btn lod-btn"
+          :class="{ active: sensor.lod === lod.value }"
+          @click="setLod(lod.value)"
+        >
+          {{ lod.label }}
+          <small>{{ lod.height }}</small>
+        </button>
       </div>
-    </SettingCard>
-
-    <SettingCard title="回报率" badge="基础">
-      <template #desc>
-        <HelpTip
-          text="Polling Rate（Hz）：每秒向电脑报告位置的次数。越高越跟手，耗电与 CPU 占用也更高。"
-        />
-      </template>
-
-      <div class="driver-rate-grid">
+      <p class="panel-hint">回报率 · 当前 <strong class="accent">{{ reportRate }} Hz</strong></p>
+      <div class="chip-row">
         <button
           v-for="hz in reportRates"
           :key="hz"
           type="button"
-          class="driver-chip"
+          class="chip-btn"
           :class="{ active: reportRate === hz, disabled: hz > maxHz }"
           :disabled="hz > maxHz"
           @click="setRate(hz)"
@@ -150,41 +189,11 @@ async function setAngle(on) {
           {{ hz }}
         </button>
       </div>
-      <p class="rate-hint">当前：<strong>{{ reportRate }} Hz</strong></p>
-    </SettingCard>
-
-    <button type="button" class="accordion-trigger" @click="showAdvanced = !showAdvanced">
-      <span>进阶调校</span>
-      <span class="accordion-meta">{{ showAdvanced ? "收起" : "LOD · 移动同步 · 直线修正" }}</span>
-      <span class="accordion-chev" :class="{ open: showAdvanced }">›</span>
-    </button>
-
-    <div v-show="showAdvanced" class="accordion-panel">
-      <SettingCard title="离地高度 LOD" badge="进阶">
-        <template #desc>
-          <HelpTip
-            text="抬鼠后仍能追踪的高度。FPS 玩家多选较低档位，减少抬鼠时指针漂移。"
-          />
-        </template>
-        <div class="driver-slider-wrap">
-          <input
-            type="range"
-            min="1"
-            max="5"
-            :value="sensor.lod"
-            @change="setLod($event.target.value)"
-          />
-          <div class="driver-slider-meta">
-            <strong>{{ sensor.lod }}</strong>
-          </div>
-        </div>
-      </SettingCard>
-
-      <SettingCard title="追踪优化" badge="进阶">
-        <div class="driver-toggle-row">
-          <label>
-            移动同步（Motion Sync）
-            <span class="sub">高刷屏下减轻移动抖动</span>
+      <div class="mini-toggles">
+        <div class="mini-toggle">
+          <label @click.prevent>
+            <span class="title">移动同步</span>
+            <span class="sub">高刷屏减抖</span>
           </label>
           <input
             type="checkbox"
@@ -192,109 +201,35 @@ async function setAngle(on) {
             @change="setMotionSync($event.target.checked)"
           />
         </div>
-        <div class="driver-toggle-row">
-          <label>
-            直线修正（Angle Snapping）
-            <span class="sub">竞技建议关闭，避免影响甩枪精度</span>
+        <div class="mini-toggle">
+          <label @click.prevent>
+            <span class="title">直线修正</span>
+            <span class="sub">竞技建议关</span>
           </label>
           <input type="checkbox" :checked="sensor.angle" @change="setAngle($event.target.checked)" />
         </div>
-      </SettingCard>
-    </div>
+      </div>
+    </section>
+
+    <aside class="perf-visual">
+      <MouseShowcase size="md" :show-labels="true" />
+    </aside>
   </div>
 </template>
 
 <style scoped>
-.tab-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.tab-warn {
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--r);
-  background: var(--aml);
-  border: 1px solid var(--bd);
-  color: var(--amx);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-.live-value {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.6rem;
-  margin-bottom: 1rem;
-  padding: 0.75rem 0.9rem;
-  background: var(--acl);
-  border-radius: var(--r);
-  border: 1px solid var(--bd);
-}
-.live-label {
-  font-size: 0.75rem;
+.panel-hint {
+  font-size: 0.68rem;
   color: var(--tx3);
-  width: 100%;
+  margin: 0 0 0.5rem;
+  line-height: 1.4;
 }
-.live-num {
-  font-size: 1.75rem;
-  font-weight: 800;
+.panel-hint strong,
+.lod-hint strong.accent {
   color: var(--acd);
+  font-weight: 700;
 }
-.live-unit {
-  font-size: 0.85rem;
-  color: var(--tx2);
-}
-.rate-hint {
-  margin-top: 0.65rem;
-  font-size: 0.85rem;
-  color: var(--tx2);
-}
-.rate-hint strong {
-  color: var(--acd);
-}
-.driver-chip.disabled {
-  opacity: 0.35;
-  pointer-events: none;
-}
-.accordion-trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--bd);
-  border-radius: var(--rl);
-  background: var(--bg2);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-.accordion-meta {
-  flex: 1;
-  text-align: right;
-  font-size: 0.78rem;
-  color: var(--tx3);
-}
-.accordion-chev {
-  transition: transform 0.2s;
-}
-.accordion-chev.open {
-  transform: rotate(90deg);
-}
-.accordion-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  animation: panelIn 0.22s ease;
-}
-@keyframes panelIn {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.lod-hint strong:not(.accent) {
+  color: var(--tx);
 }
 </style>

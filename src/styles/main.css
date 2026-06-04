@@ -1,5 +1,6 @@
 @import "./teevo-design-system.css";
 @import "./driver-theme.css";
+@import "./premium-driver.css";
 
 :root {
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
