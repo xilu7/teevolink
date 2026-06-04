@@ -1,431 +1,224 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
-import { PRODUCT } from "@/config/terra-pro.js";
+import { PRODUCT, CONNECT_GUIDE } from "@/config/terra-pro.js";
 import AppTopbar from "@/components/layout/AppTopbar.vue";
-import MouseShowcase from "@/components/brand/MouseShowcase.vue";
+import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
+import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
 
 const router = useRouter();
-const { connect, openAuthorizedSession } = useDevice();
+const { connect, autoConnectFromFactory, refresh, deviceOpen, isReady } = useDevice();
 
 const busy = ref(false);
+const booting = ref(true);
 const phase = ref("");
 const error = ref("");
 const success = ref("");
 
-const specs = [
-  { label: "传感器", value: PRODUCT.sensorModel },
-  { label: "主控", value: PRODUCT.mcu },
-  { label: "DPI", value: `${PRODUCT.dpiMin} – ${PRODUCT.dpiMax}` },
-  { label: "推荐档位", value: PRODUCT.defaultDpiPresets.join(" / ") },
-  { label: "按键", value: `${PRODUCT.buttons} 键` },
-  { label: "连接", value: "蓝牙 · 2.4G · USB" },
-];
+const BUILD_TAG = "2026-06-04-f";
 
-/** 改这个数字并 push 后，页脚能确认 Vercel 是否已更新 */
-const BUILD_TAG = "2026-06-04-e";
+const showGuide = computed(() => !deviceOpen.value);
 
-const modules = [
-  { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
-  { title: "按键", desc: "6 键改键 · 宏" },
-  { title: "灯效与设备", desc: "RGB · 电源" },
-];
-
-async function onConnect() {
+async function runConnect(firstTime) {
   error.value = "";
   success.value = "";
   if (!navigator.hid) {
-    error.value = "请使用 Chrome 89+ 或 Edge 89+ 打开本页。";
+    error.value = "请使用 Chrome 89+ 或 Edge 89+。";
     return;
   }
 
   busy.value = true;
-  const guard = setTimeout(() => {
-    if (!busy.value) return;
-    busy.value = false;
-    phase.value = "";
-    error.value =
-      "连接耗时过长。若已选过 RapidSync，请点「直接打开驱动」；或刷新页面后重试。";
-  }, 12000);
-
   try {
-    const result = await connect({
-      onPhase: (msg) => {
-        phase.value = msg;
-      },
-    });
+    const result = firstTime
+      ? await connect({ onPhase: (m) => (phase.value = m) })
+      : await autoConnectFromFactory({ onPhase: (m) => (phase.value = m) });
 
     if (result.status === "cancelled") {
       error.value = result.message;
       return;
     }
-
     if (result.status === "failed") {
+      error.value = result.message;
+      return;
+    }
+    if (result.status === "need_request") {
       error.value = result.message;
       return;
     }
 
     success.value = result.message;
-    if (result.ready) {
-      router.push("/device");
-      return;
-    }
-    router.push("/device");
   } catch (e) {
-    error.value = e?.message || "连接异常，请重试";
+    error.value = e?.message || "连接失败";
   } finally {
-    clearTimeout(guard);
     busy.value = false;
     phase.value = "";
   }
 }
 
-async function onEnterDriver() {
-  error.value = "";
-  success.value = "";
+function onPlusConnect() {
+  runConnect(true);
+}
+
+async function onRefresh() {
+  busy.value = true;
+  phase.value = "按工厂流程同步…";
+  try {
+    const ok = await refresh();
+    success.value = ok ? "参数已更新" : "仍未上线，请 2.4G 唤醒鼠标";
+  } finally {
+    busy.value = false;
+    phase.value = "";
+  }
+}
+
+function openSettings() {
+  router.push("/device");
+}
+
+onMounted(async () => {
   if (!navigator.hid) {
-    error.value = "请使用 Chrome 或 Edge。";
+    booting.value = false;
     return;
   }
-  busy.value = true;
-  phase.value = "正在打开已授权设备…";
+  booting.value = true;
   try {
-    const ok = await openAuthorizedSession();
-    if (!ok) {
-      error.value = "尚未授权：请先点「连接设备」并在弹窗中选 RapidSync";
-      return;
+    const result = await autoConnectFromFactory({
+      maxSeconds: 25,
+      onPhase: (m) => (phase.value = m),
+    });
+    if (result.message && result.status !== "need_request") {
+      success.value = result.message;
     }
-    success.value = "正在进入驱动…";
-    router.push("/device");
   } catch (e) {
-    error.value = e?.message || "无法进入驱动";
+    console.warn("home auto connect", e);
   } finally {
-    busy.value = false;
+    booting.value = false;
     phase.value = "";
   }
-}
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+});
 </script>
 
 <template>
   <div class="home-page driver-shell">
-    <AppTopbar logo-size="lg" />
+    <AppTopbar logo-size="lg" show-connect @connect="onPlusConnect">
+      <template #nav>
+        <span class="nav-active">首页</span>
+      </template>
+      <template #meta>
+        <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
+      </template>
+    </AppTopbar>
 
     <main class="container home-main">
-      <section class="home-hero">
-        <div class="home-hero-copy">
-          <p class="section-label">无线游戏鼠标</p>
-          <h1 class="home-title">{{ PRODUCT.name }}</h1>
-          <p class="home-lead">
-            网页驱动 · 精密调校。请在 2.4G 或 USB 有线模式下连接 RapidSync 接收器。
-          </p>
-        </div>
-        <div class="home-hero-visual">
-          <MouseShowcase size="lg" />
-        </div>
-      </section>
+      <p v-if="booting || busy" class="home-phase">{{ phase || "正在按工厂 SDK 连接…" }}</p>
 
-      <section class="home-block">
-        <h2 class="section-label">规格</h2>
-        <dl class="spec-matrix">
-          <div v-for="s in specs" :key="s.label" class="spec-cell">
-            <dt>{{ s.label }}</dt>
-            <dd>{{ s.value }}</dd>
-          </div>
-        </dl>
-      </section>
+      <HomeDeviceCard
+        :booting="booting || busy"
+        @connect="onPlusConnect"
+        @open-settings="openSettings"
+        @refresh="onRefresh"
+      />
 
-      <section class="home-block home-connect-block">
-        <h2 class="section-label">连接</h2>
-        <p class="connect-hint">
-          插入 RapidSync 接收器 → 点「首次连接」→ 弹窗选 <strong>RapidSync（PID F516）</strong> →
-          鼠标拨到 <strong>2.4G</strong> 并晃动唤醒。页脚版本 {{ BUILD_TAG }} 用于确认是否最新网页。
+      <HomeConnectGuide v-if="showGuide" />
+
+      <section v-else class="home-tips">
+        <p class="tips-title">已记住此浏览器授权</p>
+        <ul>
+          <li v-for="(line, i) in CONNECT_GUIDE" :key="i">{{ line }}</li>
+        </ul>
+        <p v-if="isReady" class="tips-go">
+          参数已同步。点上方 <strong>打开驱动设置</strong> 修改 DPI / 按键 / 灯效。
         </p>
-        <div class="connect-actions">
-          <button
-            type="button"
-            class="btn-enter btn-enter-primary"
-            :disabled="busy"
-            @click="onEnterDriver"
-          >
-            {{ busy ? phase || "打开中…" : "直接打开驱动" }}
-          </button>
-          <button
-            type="button"
-            class="btn-connect"
-            :disabled="busy"
-            @click="onConnect"
-          >
-            {{ busy ? phase || "连接中…" : "首次连接（选 RapidSync）" }}
-          </button>
-        </div>
-        <p class="connect-meta">Web HID · 弹窗请选择 RapidSync · 页脚版本 {{ BUILD_TAG }}</p>
-        <p v-if="success" class="feedback success">{{ success }}</p>
-        <p v-if="error" class="feedback error">
-          {{ error }}
-          <button type="button" class="feedback-retry" @click="onConnect">重试</button>
+        <p v-else class="tips-warn">
+          接收器已打开，等待鼠标上线。请 2.4G + 唤醒后点「重新同步」。
         </p>
       </section>
 
-      <section class="home-block">
-        <h2 class="section-label">功能模块</h2>
-        <div class="module-row">
-          <article v-for="m in modules" :key="m.title" class="module-item">
-            <h3>{{ m.title }}</h3>
-            <p>{{ m.desc }}</p>
-          </article>
-        </div>
-      </section>
+      <p v-if="success" class="feedback success">{{ success }}</p>
+      <p v-if="error" class="feedback error">
+        {{ error }}
+        <button type="button" class="feedback-retry" @click="onPlusConnect">重试</button>
+      </p>
+
+      <p class="home-footer-meta">
+        工厂流程：Get_HistoryDevicesInfo → Device_Reconnect → Device_Connect · 页脚 {{ BUILD_TAG }}
+      </p>
     </main>
   </div>
 </template>
 
 <style scoped>
 .home-main {
-  padding: 1.25rem 0 2.5rem;
+  padding: 1rem 0 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.35rem;
+  gap: 1rem;
 }
-
-.section-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--tx3);
-  margin: 0 0 0.55rem;
-}
-
-.home-block {
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  background: var(--bg);
-}
-
-.home-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(200px, 0.9fr);
-  gap: 1.25rem 1.5rem;
-  align-items: center;
-  padding: 1.1rem 1rem;
-  border: 1px solid var(--bd);
-  border-radius: 12px;
-  background: var(--bg);
-}
-
-@media (max-width: 780px) {
-  .home-hero {
-    grid-template-columns: 1fr;
-    text-align: center;
-  }
-  .home-hero-visual {
-    justify-self: center;
-  }
-}
-
-.home-title {
-  font-size: clamp(1.85rem, 4vw, 2.5rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  margin: 0 0 0.45rem;
-  color: var(--tx);
-}
-
-.home-lead {
-  font-size: 0.84rem;
-  line-height: 1.55;
+.home-phase {
+  font-size: 0.78rem;
   color: var(--tx2);
-  max-width: 26rem;
   margin: 0;
-}
-
-.home-hero-visual {
-  padding: 0.75rem;
-  border-radius: 10px;
-  background: var(--bg2);
-  border: 1px solid var(--bd);
-}
-
-.spec-matrix {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin: 0;
-}
-
-@media (max-width: 640px) {
-  .spec-matrix {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.spec-cell {
-  padding: 0.5rem 0.55rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 8px;
   background: var(--bg2);
   border: 1px solid var(--bd);
 }
-
-.spec-cell dt {
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--tx3);
-  margin-bottom: 0.15rem;
-}
-
-.spec-cell dd {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--tx);
-  margin: 0;
-}
-
-.connect-hint {
+.home-tips {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
   font-size: 0.8rem;
   color: var(--tx2);
   line-height: 1.5;
-  margin: 0 0 0.75rem;
 }
-
-.connect-hint strong {
-  color: var(--tx);
-  font-weight: 600;
-}
-
-.connect-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.btn-enter {
-  padding: 0.65rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--bd2);
-  background: var(--bg);
-  color: var(--tx);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-enter-primary {
-  background: var(--tx);
-  color: var(--bg);
-  border-color: var(--tx);
-}
-
-.btn-enter:hover:not(:disabled) {
-  border-color: var(--tx3);
-}
-
-.btn-enter-primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-enter:disabled {
-  opacity: 0.5;
-}
-
-.btn-connect {
-  min-width: 9.5rem;
-  padding: 0.65rem 1.35rem;
-  border: none;
-  border-radius: 8px;
-  background: var(--tx);
-  color: var(--bg);
-  font-size: 0.85rem;
+.tips-title {
   font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
+  color: var(--tx);
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
 }
-
-.btn-connect:hover:not(:disabled) {
-  opacity: 0.88;
+.home-tips ul {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
 }
-
-.btn-connect:disabled {
-  opacity: 0.55;
-  cursor: wait;
+.tips-go {
+  margin: 0.5rem 0 0;
+  color: var(--gn);
+  font-weight: 600;
 }
-
-.connect-meta {
-  font-size: 0.68rem;
+.tips-warn {
+  margin: 0.5rem 0 0;
+  color: var(--amx);
+}
+.home-footer-meta {
+  font-size: 0.65rem;
   color: var(--tx3);
-  letter-spacing: 0.04em;
+  margin: 0;
 }
-
 .feedback {
-  margin: 0.65rem 0 0;
   font-size: 0.8rem;
-  line-height: 1.45;
   padding: 0.55rem 0.65rem;
   border-radius: 8px;
+  margin: 0;
 }
-
 .feedback.success {
+  background: var(--gnl);
+  border: 1px solid var(--bd);
   color: var(--tx);
-  background: var(--bg2);
-  border: 1px solid var(--bd);
 }
-
 .feedback.error {
-  color: var(--rdx);
   background: var(--rdl);
+  color: var(--rdx);
   border: 1px solid var(--bd);
 }
-
 .feedback-retry {
   margin-left: 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--tx);
   background: none;
   border: none;
   text-decoration: underline;
   cursor: pointer;
-}
-
-.module-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-@media (max-width: 700px) {
-  .module-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.module-item {
-  padding: 0.55rem 0.6rem;
-  border-radius: 8px;
-  background: var(--bg2);
-  border: 1px solid var(--bd);
-}
-
-.module-item h3 {
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin: 0 0 0.15rem;
-  color: var(--tx);
-}
-
-.module-item p {
-  font-size: 0.68rem;
-  color: var(--tx3);
-  margin: 0;
-  line-height: 1.4;
+  font-weight: 600;
 }
 </style>

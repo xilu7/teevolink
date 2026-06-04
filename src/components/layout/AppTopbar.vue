@@ -5,9 +5,10 @@ import { useTheme } from "@/composables/useTheme.js";
 defineProps({
   logoSize: { type: String, default: "md" },
   showHome: { type: Boolean, default: false },
+  showConnect: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["home"]);
+const emit = defineEmits(["home", "connect"]);
 const { isDark, toggleTheme } = useTheme();
 </script>
 
@@ -16,12 +17,25 @@ const { isDark, toggleTheme } = useTheme();
     <div class="container app-topbar-inner">
       <div class="app-topbar-start">
         <BrandLogo :size="logoSize" />
+        <nav v-if="$slots.nav" class="topbar-nav">
+          <slot name="nav" />
+        </nav>
         <button v-if="showHome" type="button" class="topbar-link" @click="emit('home')">
           主页
         </button>
       </div>
       <div class="app-topbar-end">
+        <slot name="meta" />
         <slot name="status" />
+        <button
+          v-if="showConnect"
+          type="button"
+          class="topbar-connect"
+          title="连接设备（Request_Device）"
+          @click="emit('connect')"
+        >
+          +
+        </button>
         <button
           type="button"
           class="topbar-icon"
@@ -59,6 +73,25 @@ const { isDark, toggleTheme } = useTheme();
   align-items: center;
   gap: 0.65rem;
 }
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.25rem;
+}
+.topbar-nav :deep(.nav-active) {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--tx);
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  background: var(--bg2);
+}
+.app-topbar-end :deep(.driver-ver) {
+  font-size: 0.68rem;
+  color: var(--tx3);
+  white-space: nowrap;
+}
 .topbar-link {
   font-size: 0.75rem;
   font-weight: 600;
@@ -70,6 +103,26 @@ const { isDark, toggleTheme } = useTheme();
 }
 .topbar-link:hover {
   color: var(--tx);
+}
+.topbar-connect {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--bd2);
+  background: var(--bg2);
+  color: var(--tx);
+  font-size: 1.35rem;
+  font-weight: 300;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.topbar-connect:hover {
+  border-color: var(--tx);
+  transform: scale(1.04);
 }
 .topbar-icon {
   width: 36px;

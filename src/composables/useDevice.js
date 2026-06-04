@@ -193,8 +193,8 @@ export function useDevice() {
   }
 
   async function openAuthorizedSession() {
-    await init();
-    return startHidSession();
+    const r = await autoConnectFromFactory();
+    return r.hasAuth && HID.deviceInfo.deviceOpen;
   }
 
   async function recoverStuckSession() {
@@ -222,40 +222,124 @@ export function useDevice() {
     return await waitUntilReady(15000);
   }
 
-  async function connect(opts = {}) {
+  /**
+   * 工厂「再次进入」流程：Get_HistoryDevicesInfo → Device_Reconnect → Device_Connect
+   * 不调用 Request_Device，用户无需再次点弹窗。
+   */
+  async function autoConnectFromFactory(opts = {}) {
     const onPhase = opts.onPhase;
-    onPhase?.("请在弹窗中选择 RapidSync（接收器）…");
     await init();
 
+    onPhase?.("正在恢复已授权设备…");
+    const history = await HID.Get_HistoryDevicesInfo();
+    const dev =
+      (await getAuthorizedDevice()) ??
+      history?.find((h) => h.online && h.device)?.device ??
+      history?.[0]?.device ??
+      null;
+
+    if (!dev) {
+      return {
+        status: "need_request",
+        ready: false,
+        hasAuth: false,
+        message: "尚未授权。请点 + 首次连接 RapidSync",
+      };
+    }
+
+    onPhase?.("Device_Reconnect…");
+    await HID.Device_Reconnect(dev);
+
+    onPhase?.("Device_Connect…");
+    await HID.Device_Connect();
+
+    if (!HID.deviceInfo.deviceOpen) {
+      return {
+        status: "failed",
+        ready: false,
+        hasAuth: false,
+        message: "接收器打开失败，请重新插拔 USB",
+      };
+    }
+
+    const historyOnline = history?.some((h) => h.online);
+    if (historyOnline || (await checkMouseOnline())) {
+      onPhase?.("等待参数同步…");
+      const ready = await waitForMouseReady(opts.maxSeconds ?? 30, (sec, max) => {
+        onPhase?.(`同步参数 ${sec}/${max} 秒…`);
+      });
+      return {
+        status: ready ? "ready" : "authorized",
+        ready,
+        hasAuth: true,
+        message: ready ? "已自动连接" : "接收器已就绪，请唤醒鼠标",
+      };
+    }
+
+    return {
+      status: "authorized",
+      ready: false,
+      hasAuth: true,
+      message: "接收器已连接。请 2.4G 模式唤醒鼠标",
+    };
+  }
+
+  /** 工厂「首次连接」：Request_Device → Remember → Reconnect → Connect */
+  async function connect(opts = {}) {
+    const onPhase = opts.onPhase;
+    await init();
+
+    onPhase?.("Request_Device：请选择 RapidSync…");
     const picked = await HID.Request_Device(HID_FILTERS);
     if (!picked) {
-      return { status: "cancelled", ready: false, message: "已取消。请插入接收器后重试" };
+      return {
+        status: "cancelled",
+        ready: false,
+        hasAuth: false,
+        message: "已取消。请插入接收器后重试",
+      };
     }
 
     HID.Device_Remember("mouse", { product: PRODUCT.name });
     await sleep(400);
 
-    onPhase?.("正在打开接收器…");
-    const sessionOk = await startHidSession();
-    if (!sessionOk) {
+    const dev = await getAuthorizedDevice();
+    if (!dev) {
       return {
         status: "failed",
         ready: false,
-        message: "未识别 RapidSync。请确认 USB 已插入，并在弹窗中选对接收器",
+        hasAuth: false,
+        message: "未识别 RapidSync，请重新插拔后重试",
       };
     }
 
-    onPhase?.("正在等待鼠标上线（请晃动鼠标）…");
-    const ready = await waitForMouseReady(35, (sec) => {
-      onPhase?.(`检测鼠标… ${sec}/35 秒`);
+    onPhase?.("Device_Reconnect…");
+    await HID.Device_Reconnect(dev);
+
+    onPhase?.("Device_Connect…");
+    await HID.Device_Connect();
+
+    if (!HID.deviceInfo.deviceOpen) {
+      return {
+        status: "failed",
+        ready: false,
+        hasAuth: false,
+        message: "接收器打开失败",
+      };
+    }
+
+    onPhase?.("等待鼠标上线（请晃动）…");
+    const ready = await waitForMouseReady(opts.maxSeconds ?? 40, (sec, max) => {
+      onPhase?.(`检测鼠标 ${sec}/${max} 秒…`);
     });
 
     return {
       status: ready ? "ready" : "authorized",
       ready,
+      hasAuth: true,
       message: ready
-        ? "已连接，可以改 DPI"
-        : "接收器已打开，但鼠标未上线。请：底部开关拨到 2.4G → 打开电源 → 晃动鼠标 → 再点同步",
+        ? "连接成功"
+        : "已授权。请 2.4G + 唤醒鼠标，稍后会自动同步",
     };
   }
 
@@ -323,6 +407,7 @@ export function useDevice() {
     dongleTypeLabel,
     deviceInfo: HID.deviceInfo,
     connect,
+    autoConnectFromFactory,
     openAuthorizedSession,
     disconnect,
     refresh,
