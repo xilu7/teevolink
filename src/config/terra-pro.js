@@ -6,6 +6,11 @@ export const PRODUCT = {
   /** PixArt PAW3950 STRIKE */
   sensorType: "3950",
   sensorModel: "PAW3950",
+  /**
+   * DPI 在 EEPROM 中的存储格式（与芯片型号不同！）
+   * Terra Pro / PAW3950 走 0x0C 四字节区；仅 PAW3955 芯片才用 0x1B00 六字节区
+   */
+  dpiEepromLayout: "3950",
 
   /** 主控 nRF52840 */
   mcu: "nRF52840",

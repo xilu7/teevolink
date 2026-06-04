@@ -19,7 +19,12 @@ const chips = computed(() => {
     s.dpi != null ? { label: "DPI", value: String(s.dpi), accent: true } : null,
     s.hz != null ? { label: "回报率", value: `${s.hz} Hz` } : null,
     s.profile != null ? { label: "配置", value: `配置 ${s.profile}` } : null,
-    s.dpiLayout ? { label: "DPI区", value: s.dpiLayout === "3955" ? "3955 存储" : "3950 存储" } : null,
+    s.dpiLayout
+      ? {
+          label: "DPI区",
+          value: s.dpiLayout === "3955" ? "3955·0x1B00" : "3950·0x0C",
+        }
+      : null,
   ];
   return rows.filter(Boolean);
 });

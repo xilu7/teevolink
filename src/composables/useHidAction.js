@@ -24,9 +24,6 @@ export function useHidAction() {
       );
       return false;
     }
-    if (!HID.deviceInfo.mouseCfg.sensor.dpiEepromKind) {
-      await syncDpiSensorFromFlash();
-    }
     try {
       const result = await action();
       if (result === false) {

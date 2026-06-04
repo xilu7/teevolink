@@ -3169,7 +3169,11 @@ async function Update_Device_Param() {
       }
     }
     /*2025.09.02 修改*/
-    deviceInfo.mouseCfg.sensor.dpiEepromKind = detectDpiEepromType();
+    var dpiLayout = detectDpiEepromType();
+    if (deviceInfo.mouseCfg.sensor.type == "3950" && isSaneDpi(peekDpiDisplay3950(0))) {
+      dpiLayout = "3950";
+    }
+    deviceInfo.mouseCfg.sensor.dpiEepromKind = dpiLayout;
     await Update_Mouse_Info();
     await Get_Mouse_KeyFunctions();
   } else if (deviceInfo.type == "keyboard" || deviceInfo.type == "officeKeyboard") {
@@ -3502,27 +3506,53 @@ function EepromValue_To_DPIValue(val, dpiEx) {
   return value;
 }
 
-/** 判断 DPI 存在哪段 EEPROM（8K RapidSync 固件固定用 3955 区 0x1B00） */
+/** 从 Flash 解析单档 DPI 原始值（用于判断存储区） */
+function peekDpiRaw3950(stageIndex) {
+  var addr = stageIndex * 4 + MouseEepromAddr.DPIValue;
+  var shift = 2;
+  var ex = flashData[addr + shift] & 0x03;
+  var high = (flashData[addr + shift] & 0x0c) >> 2;
+  return flashData[addr] + (high << 8);
+}
+
+function peekDpiDisplay3950(stageIndex) {
+  var addr = stageIndex * 4 + MouseEepromAddr.DPIValue;
+  var ex = flashData[addr + 2] & 0x03;
+  var high = (flashData[addr + 2] & 0x0c) >> 2;
+  var val = flashData[addr] + (high << 8);
+  return EepromValue_To_DPIValue(val, ex);
+}
+
+function peekDpiDisplay3955(stageIndex) {
+  var addr = stageIndex * 6 + MouseEepromAddr.Sensor3955DPI;
+  var ex = flashData[addr + 4] & 0x03;
+  var high = (flashData[addr + 4] & 0x0c) >> 2;
+  var val = flashData[addr] + (flashData[addr + 1] << 8) + (high << 16);
+  return EepromValue_To_DPIValue(val, ex);
+}
+
+function isSaneDpi(dpi) {
+  return Number.isFinite(dpi) && dpi >= 50 && dpi <= 42000;
+}
+
+/** 判断 DPI 存在哪段 EEPROM（勿因 8K 接收器误判为 3955） */
 function detectDpiEepromType() {
-  var is8k =
-    deviceInfo.maxReportRate >= 8000 ||
-    deviceInfo.info?.type === 0x05 ||
-    deviceInfo.info?.type === 0x03;
-  if (is8k) {
-    for (var i = 0; i < 8; i++) {
-      var base3955 = MouseEepromAddr.Sensor3955DPI + i * 6;
-      if (check_crc(flashData, base3955, base3955 + 5)) return "3955";
-    }
-    return "3955";
-  }
-  for (var j = 0; j < 8; j++) {
+  if (deviceInfo.mouseCfg.sensor.type == "3955") return "3955";
+
+  var ok3950 = false;
+  var ok3955 = false;
+  for (var j = 0; j < 4; j++) {
     var base3950 = MouseEepromAddr.DPIValue + j * 4;
-    if (check_crc(flashData, base3950, base3950 + 3)) return "3950";
+    if (check_crc(flashData, base3950, base3950 + 3) && isSaneDpi(peekDpiDisplay3950(j))) ok3950 = true;
   }
-  for (var k = 0; k < 8; k++) {
-    var b = MouseEepromAddr.Sensor3955DPI + k * 6;
-    if (check_crc(flashData, b, b + 5)) return "3955";
+  for (var i = 0; i < 4; i++) {
+    var base3955 = MouseEepromAddr.Sensor3955DPI + i * 6;
+    if (check_crc(flashData, base3955, base3955 + 5) && isSaneDpi(peekDpiDisplay3955(i))) ok3955 = true;
   }
+  if (ok3950 && !ok3955) return "3950";
+  if (ok3955 && !ok3950) return "3955";
+  if (ok3950) return "3950";
+  if (ok3955) return "3955";
   return "3950";
 }
 
@@ -3533,7 +3563,9 @@ function dpiLayoutIs3955() {
 }
 
 function refreshMouseDpiFromFlash() {
-  deviceInfo.mouseCfg.sensor.dpiEepromKind = detectDpiEepromType();
+  if (!deviceInfo.mouseCfg.sensor.dpiEepromKind) {
+    deviceInfo.mouseCfg.sensor.dpiEepromKind = detectDpiEepromType();
+  }
   Update_Mouse_Dpi();
 }
 
@@ -3552,7 +3584,12 @@ function Update_Mouse_Dpi() {
       val = flashData[addr] + (flashData[addr + 1] << 8) + (high << 16);
     } else val = flashData[addr] + (high << 8);
 
-    deviceInfo.mouseCfg.dpis[i].x = deviceInfo.mouseCfg.dpis[i].value = EepromValue_To_DPIValue(val, ex);
+    var dpiX = EepromValue_To_DPIValue(val, ex);
+    if (!isSaneDpi(dpiX)) {
+      console.warn("Update_Mouse_Dpi invalid X", i, dpiKind, val, dpiX);
+      dpiX = i === 0 ? 800 : deviceInfo.mouseCfg.dpis[0]?.value || 800;
+    }
+    deviceInfo.mouseCfg.dpis[i].x = deviceInfo.mouseCfg.dpis[i].value = dpiX;
 
     ex = flashData[addr + shift] & 0x30;
     ex >>= 4;
@@ -3565,7 +3602,9 @@ function Update_Mouse_Dpi() {
 
     console.log("Update_Mouse_Dpi", i, dpiKind, val);
 
-    deviceInfo.mouseCfg.dpis[i].y = EepromValue_To_DPIValue(val, ex);
+    var dpiY = EepromValue_To_DPIValue(val, ex);
+    if (!isSaneDpi(dpiY)) dpiY = dpiX;
+    deviceInfo.mouseCfg.dpis[i].y = dpiY;
     deviceInfo.mouseCfg.dpis[i].color = UserConvert.Buffer_To_Color(flashData, i * 4 + MouseEepromAddr.DPIValue + 0x20);
   }
 }

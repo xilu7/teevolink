@@ -1,55 +1,49 @@
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
+import { PRODUCT } from "@/config/terra-pro.js";
 import { ensureSensorConfig, syncDpiSensorFromFlash } from "./useSensorCatalog.js";
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function dpiKindsToTry() {
-  const is8k =
-    HID.deviceInfo.maxReportRate >= 8000 ||
-    HID.deviceInfo.info?.type === 0x05 ||
-    HID.deviceInfo.info?.type === 0x03;
-  return is8k ? ["3955", "3950"] : ["3950", "3955"];
+function layoutKind() {
+  return PRODUCT.dpiEepromLayout || PRODUCT.sensorType || "3950";
 }
 
 /**
- * 写入 DPI（8K 接收器优先 3955 区，失败则回退 3950 区）
- * @returns {{ ok: boolean, kind?: string, error?: string }}
+ * Terra Pro：仅 3950 区（0x0C）+ sensor.json 3950 步进表
  */
 export async function writeMouseDpi(index, dpi, stage) {
   await syncDpiSensorFromFlash();
 
-  const kinds = dpiKindsToTry();
-  let lastError = "HID 写入无应答";
-
-  for (const kind of kinds) {
-    if (!(await ensureSensorConfig(kind))) continue;
-    HID.deviceInfo.mouseCfg.sensor.dpiEepromKind = kind;
-    HID.deviceInfo.mouseCfg.sensor.type = kind;
-
-    let wrote;
-    if (kind === "3955") {
-      wrote = await HID.Set_MS_DPIXYValue(index, dpi, dpi);
-    } else {
-      wrote = await HID.Set_MS_DPIValue(index, dpi);
-    }
-    if (wrote === false) {
-      lastError = `${kind} 区 DPI 数据写入失败`;
-      continue;
-    }
-
-    await sleep(60);
-    const applied = await HID.Set_MS_CurrentDPI(stage);
-    if (applied === false) {
-      lastError = "当前档位应用失败";
-      continue;
-    }
-
-    await sleep(80);
-    HID.refreshMouseDpiFromFlash();
-    return { ok: true, kind };
+  const kind = layoutKind();
+  if (!(await ensureSensorConfig(PRODUCT.sensorType))) {
+    return { ok: false, error: "sensor.json 未加载" };
   }
 
-  return { ok: false, error: lastError };
+  HID.deviceInfo.mouseCfg.sensor.dpiEepromKind = kind;
+  HID.deviceInfo.mouseCfg.sensor.type = PRODUCT.sensorType;
+
+  const snapped = Math.round(dpi / PRODUCT.dpiStep) * PRODUCT.dpiStep;
+  const clamped = Math.min(PRODUCT.dpiMax, Math.max(PRODUCT.dpiMin, snapped));
+
+  let wrote = false;
+  if (kind === "3955") {
+    wrote = await HID.Set_MS_DPIXYValue(index, clamped, clamped);
+  } else {
+    wrote = await HID.Set_MS_DPIValue(index, clamped);
+  }
+  if (wrote === false) {
+    return { ok: false, error: `${kind} 区写入失败，请晃动鼠标` };
+  }
+
+  await sleep(80);
+  const applied = await HID.Set_MS_CurrentDPI(stage);
+  if (applied === false) {
+    return { ok: false, error: "应用当前档位失败" };
+  }
+
+  await sleep(100);
+  HID.refreshMouseDpiFromFlash();
+  return { ok: true, kind, dpi: clamped };
 }
