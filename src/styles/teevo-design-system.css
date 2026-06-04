@@ -1,0 +1,1205 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEEVOLUTION HUB — MASTER DESIGN SYSTEM v2.0
+   ───────────────────────────────────────────────────────────────────────────
+   Single source of truth for all design tokens, components, layout patterns,
+   responsive rules, and micro-interactions used across every Hub module.
+
+   HOW TO USE IN A NEW MODULE:
+     <link rel="stylesheet" href="../teevo-design-system.css">
+
+   RULES:
+     1. Never add new colour values — match an existing token
+     2. Never use font sizes outside the documented type scale
+     3. Never use 0.5px borders — always 1px
+     4. Never override design tokens inline — change them here
+     5. All borders: 1px solid var(--bd) at rest, var(--bd2) on hover/focus
+     6. All shadows: var(--sh) resting, var(--shm) elevated
+     7. Dark mode applied via: document.documentElement.setAttribute('data-theme','dark')
+     8. Chevron spacing: use --chev-* tokens on every select/dropdown — never flush chevrons to the right edge
+
+   BREAKPOINTS (desktop-first):
+     ≤1100px — KPI grid adjustment
+     ≤900px  — Primary tablet: 2-col grids, charts stack
+     ≤800px  — Sidebar → drawer, hamburger appears
+     ≤600px  — Mobile: single column, reduced padding
+     ≤480px  — Small phones: smallest type scale
+
+   LAST UPDATED: 2026-04-22 — v2.0 full audit and refinement
+═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════
+   RESET
+═══════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0;}
+
+
+/* ═══════════════════════════════════════
+   DESIGN TOKENS — LIGHT MODE
+   ─────────────────────────────────────
+   All CSS custom properties used across
+   every component. Change here — reflects
+   everywhere. Never hardcode these values.
+═══════════════════════════════════════ */
+:root{
+
+  /* ── Surfaces ── */
+  --bg:    #ffffff;  /* Card, topbar, sidebar, modal bg */
+  --bg2:   #f5f5f5;  /* KPI tiles, hover fills, subtle containers */
+  --bg3:   #f0f0f0;  /* Body/page bg, pressed states */
+  --bg-inp:#ffffff;  /* Input field bg — separate token for dark override */
+
+  /* ── Text ── */
+  --tx:  #0a0a0a;    /* Primary — headlines, strong copy */
+  --tx2: #555555;    /* Secondary — labels, card meta, breadcrumb */
+  --tx3: #999999;    /* Tertiary — placeholder, muted, disabled */
+
+  /* ── Borders ── */
+  --bd:  #e0e0e0;    /* Default — all cards, tables, resting inputs */
+  --bd2: #c8c8c8;    /* Strong — hover inputs, focused fields */
+
+  /* ── Brand Green ── */
+  --ac:        #78BE1F;              /* Primary CTA, active nav, progress, accent */
+  --acd:       #5A9010;              /* Hover / pressed green */
+  --acl:       #EEF7DF;              /* Green tint bg — tags, badges, active sidebar */
+  --ac-shadow: rgba(120,190,31,0.22);/* Green glow — focus rings, button shadows */
+
+  /* ── Blue (B2B / informational) ── */
+  --bl:  #EBF2FB;    /* Blue tinted background */
+  --blx: #185FA5;    /* Blue text / icon */
+
+  /* ── Amber (warning) ── */
+  --aml: #FEF3E2;    /* Amber tinted background */
+  --amx: #854F0B;    /* Amber text / icon */
+
+  /* ── Red (error / danger) ── */
+  --rdl: #FEF1F1;    /* Red tinted background */
+  --rdx: #C42B2B;    /* Red text / icon / error states */
+
+  /* ── Overlay ── */
+  --overlay: rgba(0,0,0,0.35); /* Mobile sidebar backdrop */
+
+  /* ── Radii ── */
+  --r:  6px;         /* Default — buttons, inputs, small cards, sidebar items */
+  --rl: 8px;         /* Large — main cards, module cards, KPI tiles */
+
+  /* ── Layout ── */
+  --sb: 216px;       /* Sidebar expanded width */
+  --tb: 52px;        /* Topbar height */
+
+  /* ── Shadows ── */
+  --sh:  0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);   /* Resting */
+  --shm: 0 4px 16px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);  /* Elevated */
+
+  /* ── Z-index layers ── */
+  --z-topbar:  100;
+  --z-overlay: 199;
+  --z-sidebar: 200;
+  --z-toast:   9999;
+  --z-lock:    10000;
+  --z-welcome: 20000;
+
+  /* ── Motion ── */
+  --t-fast:     150ms;
+  --t-normal:   200ms;
+  --t-enter:    220ms;
+  --ease-std:   cubic-bezier(0.2,0,0,1);
+  --ease-spring:cubic-bezier(0.4,0,0.2,1);
+
+  /* ── Chevron spacing (selects, dropdown triggers) ── */
+  --chev-size:    12px;
+  --chev-inset:   14px;  /* min distance from right border to chevron — never less than 14px */
+  --chev-pad:     36px;  /* default select padding-right */
+  --chev-pad-sm:  32px;  /* compact / filter-bar selects */
+  --chev-btn-end: 20px;  /* pill buttons with trailing chevron icon */
+  --chev-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+
+/* ═══════════════════════════════════════
+   DESIGN TOKENS — DARK MODE
+   Applied via: <html data-theme="dark">
+   Toggled by JS, persisted: localStorage 'tv_theme'
+═══════════════════════════════════════ */
+[data-theme="dark"]{
+  --bg:    #111111;
+  --bg2:   #1a1a1a;
+  --bg3:   #0d0d0d;
+  --bg-inp:#1e1e1e;
+  --tx:    #ededed;
+  --tx2:   #909090;
+  --tx3:   #555555;
+  --bd:    #272727;
+  --bd2:   #363636;
+  --acl:   #1d2e07;
+  --acd:   #96d038;
+  --bl:    #0c1e38;
+  --blx:   #85B7EB;
+  --aml:   #261800;
+  --amx:   #FAC775;
+  --rdl:   #260a0a;
+  --rdx:   #f87171;
+  --sh:    0 1px 3px rgba(0,0,0,0.3),0 1px 2px rgba(0,0,0,0.2);
+  --shm:   0 4px 16px rgba(0,0,0,0.4),0 2px 4px rgba(0,0,0,0.3);
+  --chev-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaaaaa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+
+/* ═══════════════════════════════════════
+   TYPE SCALE — NEVER USE SIZES OUTSIDE THIS LIST
+   ─────────────────────────────────────
+   54px  → hero-num (home command card only)
+   26px  → mc-stat (module card stat)
+   22px  → kv (KPI tile values)
+   20px  → hero-metric-val
+   18px  → page-title, t3v, lk-title
+   15px  → mc-title, lk-brand-name
+   14px  → body base, lk-inp
+   13px  → body copy, table cells, inputs, select, card ct
+   12px  → secondary text, labels, breadcrumb, filter-bar, hero-rmb secondary
+   11px  → UPPERCASE tags, badges, buttons, hero-metric-sub, toast, footer, breadcrumb
+   10px  → Sidebar section headers, TH, kl, hero-rev-label
+═══════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════
+   BASE
+═══════════════════════════════════════ */
+html{height:100%;overflow-x:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+  background:var(--bg3);
+  color:var(--tx);
+  font-size:14px;
+  line-height:1.5;
+  min-height:100%;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition:background var(--t-normal),color var(--t-normal);
+  overflow-x:hidden;
+}
+
+
+/* ═══════════════════════════════════════
+   WELCOME SCREEN
+   Full-screen loading splash shown on
+   initial app load before lock screen.
+   Fades out after ~1050ms.
+═══════════════════════════════════════ */
+#welcome{
+  position:fixed;inset:0;
+  z-index:var(--z-welcome);
+  background:#0a0a0a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:22px;
+  transition:opacity .4s ease;
+}
+#welcome.fade{opacity:0;pointer-events:none;}
+.wl-wordmark{font-size:24px;font-weight:700;color:#fff;letter-spacing:-.02em;}
+.wl-wordmark span{color:var(--ac);}
+.wl-tagline{font-size:11px;color:#ffffff44;letter-spacing:.14em;text-transform:uppercase;}
+.wl-dots{display:flex;gap:7px;margin-top:4px;}
+.wl-dot{width:5px;height:5px;border-radius:50%;background:#ffffff22;animation:wPulse 1.4s ease-in-out infinite;}
+.wl-dot:nth-child(2){animation-delay:.22s;}
+.wl-dot:nth-child(3){animation-delay:.44s;}
+@keyframes wPulse{
+  0%,100%{background:#ffffff22;transform:scale(1);}
+  50%{background:#ffffff99;transform:scale(1.4);}
+}
+
+
+/* ═══════════════════════════════════════
+   LOCK SCREEN
+   Password gate. SHA-256 hash compared
+   client-side. Auth state: sessionStorage 'tv_auth'.
+   Lockout after 5 fails for 15 minutes.
+═══════════════════════════════════════ */
+#lock{
+  position:fixed;inset:0;
+  z-index:var(--z-lock);
+  display:none;align-items:center;justify-content:center;
+  background:var(--bg3);
+}
+.lk-wrap{width:100%;max-width:360px;padding:1rem;}
+.lk-logo{text-align:center;margin-bottom:1.75rem;}
+.lk-logo-mark{
+  width:44px;height:44px;border-radius:10px;
+  background:var(--ac);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 10px;
+  font-size:20px;font-weight:800;color:#fff;
+  box-shadow:0 4px 14px var(--ac-shadow);
+}
+.lk-brand-name{font-size:15px;font-weight:600;color:var(--tx);}
+.lk-card{
+  background:var(--bg);
+  border:1px solid var(--bd);
+  border-radius:12px;
+  padding:2rem;
+  box-shadow:var(--shm);
+}
+.lk-title{font-size:18px;font-weight:600;color:var(--tx);margin-bottom:4px;}
+.lk-sub{font-size:13px;color:var(--tx2);margin-bottom:1.5rem;}
+.lk-inp{
+  width:100%;padding:10px 14px;
+  font-size:14px;
+  border:1px solid var(--bd2);border-radius:var(--r);
+  background:var(--bg);color:var(--tx);
+  font-family:inherit;outline:none;
+  text-align:center;letter-spacing:.1em;
+  transition:border-color var(--t-fast),box-shadow var(--t-fast);
+}
+.lk-inp:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-shadow);}
+.lk-inp.err{border-color:var(--rdx);box-shadow:0 0 0 3px rgba(196,43,43,.1);}
+.lk-err{font-size:12px;color:var(--rdx);margin-top:.4rem;text-align:center;min-height:1.4em;}
+.lk-btn{
+  margin-top:.75rem;width:100%;padding:11px;
+  background:var(--ac);color:#fff;
+  border:1px solid var(--acd);border-radius:var(--r);
+  font-size:11px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  letter-spacing:.1em;text-transform:uppercase;
+  transition:background var(--t-fast),border-color var(--t-fast),box-shadow var(--t-fast),transform 100ms;
+  box-shadow:0 1px 3px var(--ac-shadow);
+}
+.lk-btn:hover{background:var(--acd);box-shadow:0 2px 8px var(--ac-shadow);}
+.lk-btn:active{transform:scale(0.96);box-shadow:none;}
+
+/* Lock screen lockout panel */
+.lk-lockout{
+  text-align:center;padding:1rem;
+  background:var(--rdl);border:1px solid var(--rdx);border-radius:var(--r);
+  margin-bottom:1rem;
+}
+.lk-lockout-countdown{font-weight:700;color:var(--tx);}
+.lk-attempts{font-size:11px;color:var(--tx3);text-align:center;margin-top:.25rem;}
+
+/* Favicon variants per theme */
+.lk-fav-light{display:block;}
+.lk-fav-dark{display:none;}
+[data-theme="dark"] .lk-fav-light{display:none;}
+[data-theme="dark"] .lk-fav-dark{display:block;}
+
+
+/* ═══════════════════════════════════════
+   MODULE SHELL — FIXED SIDEBAR LAYOUT
+   ─────────────────────────────────────
+   Required HTML structure:
+
+   <div id="mod-xyz">            ← Full viewport, flex row
+     <div class="mod-layout">   ← Sidebar + right col
+       <aside class="sidebar">  ← Fixed-height, scrolls internally
+       </aside>
+       <div class="mod-right">  ← Topbar + scrolling content
+         <div class="mod-topbar">
+         <main class="mod-content">
+       </div>
+     </div>
+   </div>
+
+   Apply mod-shell to the outer div OR use
+   the exact ID pattern (#mod-home, #mod-rev, etc.)
+═══════════════════════════════════════ */
+#mod-home,#mod-rev,#mod-exp,
+.mod-shell{
+  height:100vh;
+  display:flex;
+  overflow:hidden;
+}
+.mod-layout{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+}
+.mod-right{
+  flex:1;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  min-width:0; /* prevents flex child from overflowing */
+}
+.mod-topbar{
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.25rem;
+  height:var(--tb);
+  background:var(--bg);
+  border-bottom:1px solid var(--bd);
+  z-index:var(--z-topbar);
+  transition:box-shadow var(--t-enter);
+}
+/* Scroll elevation — applied via JS when content scrolls */
+.mod-topbar.scrolled{
+  box-shadow:0 2px 12px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.05);
+}
+[data-theme="dark"] .mod-topbar.scrolled{
+  box-shadow:0 2px 16px rgba(0,0,0,.38),0 1px 4px rgba(0,0,0,.22);
+}
+.mod-topbar-right{display:flex;align-items:center;gap:10px;}
+.mod-content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:1.5rem;
+}
+
+/* Section visibility + transitions */
+.sec{display:none;}
+.sec.a{display:block;animation:secIn .18s ease;}
+.sec.leaving{animation:secOut .14s ease forwards;display:block !important;}
+
+
+/* ═══════════════════════════════════════
+   TOPBAR ELEMENTS
+═══════════════════════════════════════ */
+
+/* Brand logomark — green square with "T" */
+.brand-mark{
+  width:28px;height:28px;border-radius:6px;
+  background:var(--ac);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;
+  flex-shrink:0;
+}
+
+/* Page title */
+.page-title{
+  font-size:18px;font-weight:700;color:var(--tx);
+  letter-spacing:-.02em;
+  text-wrap:balance;
+}
+
+/* Breadcrumb trail */
+.breadcrumb{
+  font-size:11px;font-weight:400;color:var(--tx3);
+  letter-spacing:.01em;margin-left:10px;
+  opacity:.75;white-space:nowrap;
+}
+.breadcrumb-sep{margin:0 5px;opacity:.5;}
+.bc-cur{color:var(--tx2);font-weight:500;}
+
+/* Date display */
+.home-date{font-size:12px;color:var(--tx2);}
+
+/* ── Icon buttons (theme / lock / search / hamburger) ── */
+.theme-btn,.lock-btn,.search-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:var(--r);
+  border:1px solid var(--bd2);background:var(--bg2);
+  cursor:pointer;color:var(--tx2);
+  flex-shrink:0;
+  transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),transform 100ms;
+}
+.theme-btn:hover,.search-btn:hover{background:var(--bg3);border-color:var(--tx3);color:var(--tx);}
+.lock-btn:hover{background:var(--rdl);border-color:var(--rdx);color:var(--rdx);}
+.theme-btn:active,.lock-btn:active,.search-btn:active{transform:scale(0.96);}
+
+/* ── Pill buttons (language / currency selectors) ── */
+.tp-pill{
+  display:flex;align-items:center;justify-content:center;
+  height:40px;padding:0 10px;border-radius:var(--r);
+  border:1px solid var(--bd2);background:var(--bg2);
+  cursor:pointer;font-family:inherit;
+  font-size:11px;font-weight:700;letter-spacing:.04em;
+  color:var(--tx2);
+  flex-shrink:0;white-space:nowrap;
+  transition:background 120ms,border-color 120ms,color 120ms,transform 100ms;
+}
+.tp-pill:hover{background:var(--bg3);border-color:var(--tx3);color:var(--tx);}
+.tp-pill:active{transform:scale(0.96);}
+
+/* ── Sync status indicator ── */
+.sync{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);}
+.sd{width:7px;height:7px;border-radius:50%;background:var(--ac);}
+.sd.w{background:#EF9F27;} /* warning: amber — not in token yet */
+.sd.e{background:var(--rdx);}
+
+/* ── Period tabs (inside hero card) ── */
+.period-tabs{display:flex;gap:2px;background:var(--bg2);border-radius:6px;padding:2px;}
+.ptab{
+  font-size:11px;font-weight:600;
+  padding:4px 10px;border-radius:4px;
+  cursor:pointer;color:var(--tx3);
+  border:none;background:none;font-family:inherit;
+  transition:background 120ms,color 120ms,transform 100ms;
+}
+.ptab.a{background:var(--bg);color:var(--tx);box-shadow:var(--sh);}
+.ptab:active{transform:scale(0.96);}
+
+/* ── Delta indicator (revenue vs previous period) ── */
+.h-delta{
+  font-size:13px;font-weight:600;
+  font-variant-numeric:tabular-nums;
+  overflow:hidden;
+  transition:max-height var(--t-normal),opacity var(--t-normal);
+}
+.h-delta:empty{max-height:0;opacity:0;margin:0;}
+.h-delta:not(:empty){max-height:2em;opacity:1;margin-bottom:.5rem;}
+.h-delta.up{color:var(--ac);}
+.h-delta.dn{color:var(--rdx);}
+.h-delta.flat{color:var(--tx3);}
+
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+   Full-height flex column. Scrolls
+   internally. Collapses to 44px icon rail.
+   Becomes drawer on ≤800px.
+═══════════════════════════════════════ */
+.sidebar{
+  width:var(--sb);
+  flex-shrink:0;
+  background:var(--bg);
+  border-right:1px solid var(--bd);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+  padding:.5rem 0 1rem;
+  transition:width var(--t-normal) ease;
+}
+
+/* Logo + collapse toggle row */
+.sb-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.55rem .65rem .3rem;
+}
+.sb-logo{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;}
+.sb-head .sb-toggle{margin:0;flex-shrink:0;}
+
+/* Section label */
+.sb-section{
+  font-size:10px;font-weight:600;color:var(--tx3);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:.75rem 1rem .25rem;
+  max-height:40px;overflow:hidden;
+  transition:opacity var(--t-normal),max-height var(--t-normal) ease,padding var(--t-normal);
+}
+
+/* Nav item */
+.sb-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;margin:1px 6px;
+  font-size:13px;color:var(--tx2);
+  cursor:pointer;border:none;background:transparent;
+  border-radius:var(--r);width:calc(100% - 12px);
+  text-align:left;font-family:inherit;white-space:nowrap;
+  transition:background 100ms,color 100ms,padding var(--t-normal),transform 80ms;
+}
+.sb-item:hover{background:var(--bg2);color:var(--tx);}
+.sb-item.a{background:var(--acl);color:var(--acd);font-weight:600;}
+.sb-item:active{transform:scale(.97);}
+.sb-item:disabled{opacity:.38;cursor:not-allowed;}
+
+/* Icon + label within nav item */
+.sb-ic{
+  width:18px;height:18px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;opacity:.6;
+}
+.sb-item.a .sb-ic{opacity:1;}
+.sb-label{transition:opacity 100ms,width var(--t-normal);}
+
+/* Horizontal divider */
+.sb-divider{height:1px;background:var(--bd);margin:.5rem 8px;}
+
+/* Footer text inside sidebar */
+.sb-footer{padding:.5rem 1rem;font-size:11px;color:var(--tx3);}
+
+/* Back to Hub button — pinned to sidebar bottom */
+.sb-back{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:4px 6px;padding:8px 10px;
+  font-size:10px;color:#fff;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;
+  border:1px solid var(--acd);border-radius:var(--r);
+  background:var(--ac);cursor:pointer;font-family:inherit;
+  width:calc(100% - 12px);
+  transition:background 100ms,border-color 100ms,box-shadow 100ms,opacity 150ms;
+  box-shadow:0 1px 3px var(--ac-shadow);
+}
+.sb-back:hover{background:var(--acd);border-color:var(--acd);box-shadow:0 2px 6px var(--ac-shadow);}
+.sb-back:active{transform:scale(0.96);box-shadow:none;}
+
+/* Spacer — pushes sb-back to bottom */
+.sb-spacer{flex:1;}
+
+/* Collapse toggle button */
+.sb-toggle{
+  display:flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:var(--r);
+  border:1px solid var(--bd);background:transparent;
+  cursor:pointer;font-size:13px;color:var(--tx3);
+  margin:.35rem .5rem .35rem auto;
+  transition:background 120ms,color 120ms,transform var(--t-normal);
+  flex-shrink:0;font-family:inherit;line-height:1;
+}
+.sb-toggle:hover{background:var(--bg2);color:var(--tx);}
+
+/* ── Collapsed state (44px icon rail) ── */
+.sidebar.collapsed{width:44px;}
+.sidebar.collapsed .sb-logo{display:none;}
+.sidebar.collapsed .sb-head{justify-content:center;}
+.sidebar.collapsed .sb-section{opacity:0;max-height:0;padding:0;}
+.sidebar.collapsed .sb-item{justify-content:center;padding:7px 0;margin:1px 4px;width:calc(100% - 8px);gap:0;}
+.sidebar.collapsed .sb-ic{width:auto;opacity:.75;}
+.sidebar.collapsed .sb-label{opacity:0;width:0;overflow:hidden;}
+.sidebar.collapsed .sb-back{opacity:0;pointer-events:none;height:0;margin:0;padding:0;overflow:hidden;border:none;}
+.sidebar.collapsed .sb-footer{display:none;}
+.sidebar.collapsed .sb-toggle{margin:.35rem auto;transform:rotate(180deg);}
+
+/* ── Mobile hamburger button ── */
+.ham-btn{
+  display:none;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:var(--r);
+  border:1px solid var(--bd);background:transparent;
+  cursor:pointer;color:var(--tx2);flex-shrink:0;
+}
+
+/* ── Mobile sidebar backdrop ── */
+.sb-overlay{
+  display:none;position:fixed;inset:0;
+  z-index:var(--z-overlay);
+  background:var(--overlay);
+}
+.sb-overlay.open{display:block;}
+
+/* ── Logo switching: light/dark variants ── */
+.logo-light{display:inline-block;}
+.logo-dark{display:none;}
+[data-theme="dark"] .logo-light{display:none;}
+[data-theme="dark"] .logo-dark{display:inline-block;}
+
+
+/* ═══════════════════════════════════════
+   HOME PAGE WRAPPER
+═══════════════════════════════════════ */
+.home-wrap{
+  padding:1.5rem 1.5rem 3rem;
+  max-width:1400px; /* ultra-wide cap */
+}
+
+
+/* ═══════════════════════════════════════
+   HERO COMMAND CARD
+   Home page only. Accent top border,
+   large hero number, progress bar,
+   3-metric footer grid.
+═══════════════════════════════════════ */
+.hero-card{
+  background:var(--bg);
+  border:1px solid var(--bd);border-radius:var(--rl);
+  padding:2rem 2.25rem 1.75rem;
+  box-shadow:var(--shm);
+  margin-bottom:1.5rem;
+  position:relative;overflow:hidden;
+}
+/* Green accent stripe */
+.hero-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--ac);border-radius:var(--rl) var(--rl) 0 0;
+}
+.hero-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;}
+.hero-greeting{font-size:13px;color:var(--tx2);margin-bottom:3px;}
+.hero-rev-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);}
+.period-badge{
+  display:inline-flex;align-items:center;
+  font-size:11px;font-weight:700;padding:4px 11px;
+  background:var(--acl);color:var(--acd);
+  border-radius:4px;letter-spacing:.04em;flex-shrink:0;
+}
+.hero-num{
+  font-size:54px;font-weight:800;color:var(--tx);
+  line-height:1;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;
+  margin-bottom:.3rem;
+}
+.hero-rmb{
+  font-size:15px;color:var(--tx2);font-weight:500;
+  margin-bottom:1.5rem;font-variant-numeric:tabular-nums;
+}
+.hero-prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.hero-prog-label{font-size:12px;color:var(--tx2);}
+.hero-prog-pct{font-size:12px;font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums;}
+.hero-prog-track{height:6px;background:var(--bg2);border-radius:999px;overflow:hidden;margin-bottom:1.75rem;}
+.hero-prog-fill{
+  height:100%;background:var(--ac);border-radius:999px;
+  transition:width 900ms var(--ease-spring);
+}
+/* Footer metric grid */
+.hero-metrics{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--bd);
+  border-radius:var(--r);overflow:hidden;border:1px solid var(--bd);
+}
+.hero-metric{background:var(--bg);padding:1rem 1.25rem;}
+.hero-metric-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:5px;}
+.hero-metric-val{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+.hero-metric-sub{font-size:11px;color:var(--tx2);margin-top:3px;}
+
+
+/* ═══════════════════════════════════════
+   MODULE GRID (Home page — module cards)
+═══════════════════════════════════════ */
+.mods-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.mod-card{
+  background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);
+  padding:1.5rem;cursor:pointer;
+  transition:border-color var(--t-normal),box-shadow var(--t-normal),transform 150ms;
+  position:relative;overflow:hidden;
+  box-shadow:var(--sh);
+  display:flex;flex-direction:column;
+}
+.mod-card:hover:not(.locked){border-color:var(--bd2);box-shadow:var(--shm);transform:translateY(-2px);}
+.mod-card:active:not(.locked){transform:translateY(-1px);}
+
+/* Per-module colour top accent strip — add class to mod-card */
+.mod-card.mc-rev::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac);}
+.mod-card.mc-exp::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blx);}
+.mod-card.mc-prod::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--amx);}
+.mod-card.mc-inv::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--blx);}
+.mod-card.mc-mkt::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#8B5CF6;}
+.mod-card.mc-crm::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--rdx);}
+
+/* Locked state */
+.mod-card.locked{cursor:default;background:var(--bg2);border-style:dashed;}
+.mod-card.locked .mc-title{color:var(--tx3);}
+.mod-card.locked .mc-desc{opacity:.5;}
+.mod-card.locked .mc-lock-icon{opacity:.25;}
+.mod-card.locked:hover{transform:none;border-color:var(--bd);box-shadow:var(--sh);}
+
+/* Module card internals */
+.mc-lock-icon{font-size:18px;margin-bottom:.6rem;}
+.mc-soon{
+  display:inline-flex;font-size:10px;font-weight:700;
+  padding:3px 8px;background:var(--bg3);color:var(--tx3);
+  border-radius:4px;letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:.6rem;width:fit-content;
+}
+.mc-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;padding:3px 10px;
+  border-radius:4px;margin-bottom:.75rem;
+  text-transform:uppercase;letter-spacing:.07em;width:fit-content;
+}
+.mc-tag.rev {background:var(--acl);color:var(--acd);}
+.mc-tag.exp {background:var(--bl); color:var(--blx);}
+.mc-tag.prod{background:var(--aml);color:var(--amx);}
+.mc-tag.inv {background:var(--bl); color:var(--blx);}
+.mc-title{font-size:15px;font-weight:700;color:var(--tx);margin-bottom:.25rem;}
+.mc-desc{font-size:12px;color:var(--tx2);margin-bottom:.9rem;line-height:1.55;flex:1;}
+.mc-stat{font-size:26px;font-weight:700;margin-bottom:2px;font-variant-numeric:tabular-nums;}
+.mc-stat-sub{font-size:12px;color:var(--tx2);margin-bottom:.75rem;}
+.mc-footer{padding-top:.75rem;border-top:1px solid var(--bd);font-size:11px;color:var(--tx3);margin-bottom:.9rem;}
+.mc-open-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;background:var(--ac);color:#fff;
+  border:1px solid var(--acd);border-radius:var(--r);
+  font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
+  letter-spacing:.08em;text-transform:uppercase;
+  box-shadow:0 1px 2px var(--ac-shadow);
+  width:fit-content;margin-top:auto;flex-shrink:0;
+  transition:background var(--t-fast),border-color var(--t-fast),box-shadow var(--t-fast),transform 100ms;
+}
+.mc-open-btn:hover{background:var(--acd);box-shadow:0 2px 6px var(--ac-shadow);}
+.mc-open-btn:active{transform:scale(0.96);box-shadow:none;}
+/* Blue variant for expense module */
+.mc-open-btn.exp-btn{background:var(--blx);border-color:#1453A0;box-shadow:0 1px 2px rgba(24,95,165,.2);}
+.mc-open-btn.exp-btn:hover{background:#1453A0;box-shadow:0 2px 6px rgba(24,95,165,.28);}
+/* Alert banner inside module card */
+.mc-alert{
+  display:flex;align-items:flex-start;gap:7px;
+  font-size:11px;line-height:1.45;padding:8px 10px;
+  background:var(--aml);color:var(--amx);border-radius:var(--r);margin-bottom:.75rem;
+}
+.mc-alert-ic{flex-shrink:0;}
+
+
+/* ═══════════════════════════════════════
+   CARDS
+   .card — standard content card
+   .ct   — card title
+═══════════════════════════════════════ */
+.card{
+  background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);
+  padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--sh);
+}
+.ct{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:1rem;}
+/* Flex card header (title + action) */
+.ct-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.ct-row .ct{margin-bottom:0;}
+
+
+/* ═══════════════════════════════════════
+   KPI GRID
+   Always 3 columns. Wraps at 900px → 2.
+   Never use auto-fit/auto-fill — fixed cols
+   prevent orphaned card layouts.
+═══════════════════════════════════════ */
+.kg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;}
+.kpi{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem 1.25rem;box-shadow:var(--sh);}
+.kl{font-size:10px;color:var(--tx2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.kv{font-size:22px;font-weight:700;color:var(--tx);line-height:1.1;font-variant-numeric:tabular-nums;}
+.ks{font-size:12px;color:var(--tx2);margin-top:3px;}
+
+
+/* ═══════════════════════════════════════
+   PROGRESS BAR
+   .pc  — card wrapper
+   .pf  — fill bar (width set via JS)
+   .pf.rd — red variant (over budget)
+═══════════════════════════════════════ */
+.pc{background:var(--bg);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:1.25rem;box-shadow:var(--sh);}
+.ph{display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);margin-bottom:8px;}
+.pt{height:6px;background:var(--bg2);border-radius:999px;overflow:hidden;}
+.pf{height:100%;background:var(--ac);border-radius:999px;transition:width .6s;}
+.pf.rd{background:var(--rdx);}
+
+
+/* ═══════════════════════════════════════
+   TWO-COLUMN CHART ROW
+   .tc  — 2-col grid wrapper
+   .cw  — chart canvas wrapper (position:relative)
+   .tw  — table horizontal scroll wrapper
+═══════════════════════════════════════ */
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+.cw{position:relative;width:100%;}
+.tw{overflow-x:auto;}
+
+
+/* ═══════════════════════════════════════
+   TOP 3 PARTNER CARDS
+   Used on Revenue Tracker → Partners tab.
+═══════════════════════════════════════ */
+.t3g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.t3c{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rl);padding:1rem;text-align:center;}
+.t3r{font-size:11px;color:var(--tx2);margin-bottom:4px;}
+.t3n{font-size:14px;font-weight:600;color:var(--tx);margin-bottom:2px;}
+.t3co{font-size:12px;color:var(--tx2);margin-bottom:8px;}
+.t3v{font-size:18px;font-weight:700;color:var(--tx);}
+.t3p{font-size:12px;color:var(--tx2);}
+
+
+/* ═══════════════════════════════════════
+   TABLES
+   Always border-collapse. Bottom-border
+   rows only. Hover row highlight.
+   TH always UPPERCASE, 10px, var(--tx3).
+═══════════════════════════════════════ */
+table{width:100%;font-size:13px;border-collapse:collapse;}
+th{
+  text-align:left;font-size:10px;font-weight:600;color:var(--tx3);
+  padding:8px 12px;border-bottom:1px solid var(--bd);
+  white-space:nowrap;text-transform:uppercase;letter-spacing:.07em;
+}
+td{
+  padding:9px 12px;border-bottom:1px solid var(--bd);
+  color:var(--tx);vertical-align:middle;font-variant-numeric:tabular-nums;
+}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--bg2);}
+tfoot td{
+  border-top:1px solid var(--bd);border-bottom:none;
+  font-weight:600;color:var(--tx);background:var(--bg2);
+}
+
+
+/* ═══════════════════════════════════════
+   BADGES
+   .badge — base class (always include)
+   .bg    — green (success / active)
+   .bb    — blue  (info / B2B)
+   .ba    — amber (warning / pending)
+   .br    — red   (error / overdue)
+═══════════════════════════════════════ */
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;}
+.bg{background:var(--acl);color:var(--acd);}
+.ba{background:var(--aml);color:var(--amx);}
+.bb{background:var(--bl); color:var(--blx);}
+.br{background:var(--rdl);color:var(--rdx);}
+
+
+/* ═══════════════════════════════════════
+   BUTTONS
+   Always UPPERCASE. Always use .btn as
+   base + one modifier (.bp or .bs2).
+
+   .btn      — base (layout, font, transition)
+   .btn.bp   — primary: green filled
+   .btn.bs2  — secondary: ghost/outline
+═══════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 16px;border-radius:var(--r);
+  font-size:11px;font-weight:600;line-height:1;
+  cursor:pointer;font-family:inherit;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;
+  border:1px solid transparent;
+  transition:background var(--t-fast),color var(--t-fast),border-color var(--t-fast),box-shadow var(--t-fast),transform 100ms;
+}
+/* Primary — green filled */
+.bp{
+  background:var(--ac);color:#fff;
+  border-color:var(--acd);
+  box-shadow:0 1px 2px var(--ac-shadow);
+  font-weight:600;
+}
+.bp:hover{background:var(--acd);border-color:var(--acd);box-shadow:0 2px 6px var(--ac-shadow);}
+.bp:active{transform:scale(0.96);box-shadow:none;}
+.bp:disabled{background:var(--bg2);color:var(--tx3);border-color:var(--bd);cursor:not-allowed;box-shadow:none;}
+/* Secondary — ghost */
+.bs2{background:var(--bg2);color:var(--tx);border-color:var(--bd2);}
+.bs2:hover{background:var(--bg3);border-color:var(--tx3);}
+.bs2:active{transform:scale(0.96);}
+/* Danger variant (destructive) */
+.btn.bd{background:var(--rdl);color:var(--rdx);border-color:var(--rdx);}
+.btn.bd:hover{background:var(--rdx);color:#fff;}
+.btn.bd:active{transform:scale(0.96);}
+
+
+/* ═══════════════════════════════════════
+   FORMS
+   .fg     — 2-col grid
+   .fg3    — 3-col grid
+   .fg.mt  — 12px top margin (second row of form)
+   .ff     — full-width field (grid-column:1/-1)
+   .fgrp   — single field group (label + input stacked)
+   .fa     — form action bar (right-aligned buttons)
+═══════════════════════════════════════ */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fg3{grid-template-columns:1fr 1fr 1fr;}
+.fg.mt{margin-top:12px;}
+.ff{grid-column:1/-1;}
+.fgrp{display:flex;flex-direction:column;gap:5px;}
+
+label{font-size:12px;color:var(--tx2);font-weight:500;letter-spacing:.01em;}
+
+input,select,textarea{
+  font-size:13px;padding:8px 12px;
+  border:1px solid var(--bd2);border-radius:var(--r);
+  background:var(--bg-inp);color:var(--tx);width:100%;
+  font-family:inherit;outline:none;
+  transition:border-color var(--t-fast),box-shadow var(--t-fast);
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--ac);
+  box-shadow:0 0 0 3px var(--ac-shadow);
+}
+select{
+  -webkit-appearance:none;
+  appearance:none;
+  cursor:pointer;
+  padding-right:var(--chev-pad);
+  background-image:var(--chev-icon);
+  background-repeat:no-repeat;
+  background-position:right var(--chev-inset) center;
+  background-size:var(--chev-size) var(--chev-size);
+}
+input:disabled,select:disabled,textarea:disabled{
+  background:var(--bg2);color:var(--tx3);cursor:not-allowed;
+}
+textarea{resize:vertical;min-height:72px;}
+
+/* Form action bar */
+.fa{
+  display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--bd);
+}
+
+/* Settings config row (label inline with input) */
+.cr{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.cr label{min-width:160px;font-size:13px;color:var(--tx2);margin:0;}
+.cr input{max-width:220px;}
+
+/* Notes box beneath settings cards */
+.cnote{
+  font-size:12px;color:var(--tx2);
+  margin-top:1rem;padding:10px 14px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  line-height:1.6;
+}
+
+
+/* ═══════════════════════════════════════
+   FILTER BAR
+   Appears above tables. Compact inputs.
+═══════════════════════════════════════ */
+.filter-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+.filter-bar select,.filter-bar input{width:auto;font-size:12px;}
+.filter-bar select{padding:6px var(--chev-pad-sm) 6px 10px;}
+.filter-bar input{padding:6px 10px;}
+.filter-bar input{flex:1;min-width:140px;}
+select.chev-compact{font-size:12px;width:auto;padding:6px var(--chev-pad-sm) 6px 10px;}
+
+
+/* ═══════════════════════════════════════
+   CHART LEGEND
+═══════════════════════════════════════ */
+.leg{display:flex;gap:14px;font-size:12px;color:var(--tx2);margin-bottom:8px;flex-wrap:wrap;}
+.li{display:flex;align-items:center;gap:5px;}
+.ld{width:10px;height:10px;border-radius:2px;}
+
+
+/* ═══════════════════════════════════════
+   BUDGET VS ACTUAL BAR
+   Used in Expense Tracker budget table.
+═══════════════════════════════════════ */
+.bv-bar{height:4px;background:var(--bg2);border-radius:999px;overflow:hidden;margin-top:4px;}
+.bv-fill{height:100%;border-radius:999px;}
+
+
+/* ═══════════════════════════════════════
+   TOAST NOTIFICATION
+   Appears bottom-right. Auto-dismisses.
+   JS: showToast('msg') / showToast('msg','err')
+═══════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  padding:10px 16px;border-radius:var(--r);
+  font-size:13px;font-weight:500;color:#fff;
+  background:var(--ac);
+  opacity:0;pointer-events:none;
+  transition:opacity var(--t-slow,250ms),transform var(--t-slow,250ms);
+  transform:translateY(8px);
+  z-index:var(--z-toast);
+  max-width:300px;box-shadow:var(--shm);
+}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.err{background:var(--rdx);}
+.toast.warn{background:#EF9F27;}
+
+
+/* ═══════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════ */
+.hub-footer{
+  text-align:center;padding:1.5rem;
+  font-size:11px;color:var(--tx3);
+  border-top:1px solid var(--bd);margin-top:1rem;
+}
+
+
+/* ═══════════════════════════════════════
+   LOADING / SKELETON STATES
+   body.loading pulses the hero numbers.
+   Skeleton class for future placeholder use.
+═══════════════════════════════════════ */
+@keyframes valPulse{0%,100%{opacity:.75}50%{opacity:.2}}
+body.loading .hero-num,
+body.loading .hero-rmb,
+body.loading #h-exp,
+body.loading #h-net,
+body.loading #h-margin{
+  animation:valPulse 1.3s ease-in-out infinite;
+}
+.skeleton{
+  background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);
+  background-size:200% 100%;
+  animation:skeletonPulse 1.5s ease-in-out infinite;
+  border-radius:var(--r);color:transparent !important;
+}
+@keyframes skeletonPulse{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+
+/* ═══════════════════════════════════════
+   MICRO-INTERACTIONS & ANIMATIONS
+═══════════════════════════════════════ */
+
+/* Section cross-fade in */
+@keyframes secIn{from{opacity:0}to{opacity:1}}
+.sec.a{animation:secIn .18s ease;}
+
+/* Section exit */
+@keyframes secOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-5px)}}
+.sec.leaving{animation:secOut .14s ease forwards;display:block !important;}
+
+/* Module content slide-up on enter */
+@keyframes modIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.mod-content.entering{animation:modIn .24s var(--ease-std);}
+
+/* KPI card stagger fade-up */
+@keyframes kpiIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.kpi{animation:kpiIn .22s var(--ease-std) both;}
+.kpi:nth-child(2){animation-delay:55ms;}
+.kpi:nth-child(3){animation-delay:110ms;}
+.kpi:nth-child(4){animation-delay:55ms;}
+.kpi:nth-child(5){animation-delay:110ms;}
+.kpi:nth-child(6){animation-delay:165ms;}
+
+/* Module card stagger */
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.mods-grid .mod-card{animation:cardIn .28s var(--ease-std) both;}
+.mods-grid .mod-card:nth-child(2){animation-delay:50ms;}
+.mods-grid .mod-card:nth-child(3){animation-delay:100ms;}
+.mods-grid .mod-card:nth-child(4){animation-delay:75ms;}
+.mods-grid .mod-card:nth-child(5){animation-delay:125ms;}
+.mods-grid .mod-card:nth-child(6){animation-delay:175ms;}
+
+/* Hero metric stagger */
+.hero-metrics .hero-metric{animation:kpiIn .22s var(--ease-std) both;}
+.hero-metrics .hero-metric:nth-child(2){animation-delay:60ms;}
+.hero-metrics .hero-metric:nth-child(3){animation-delay:120ms;}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — ≤1100px
+   KPI grid stays at 3 cols between 900-1100
+═══════════════════════════════════════ */
+@media(max-width:1100px){
+  .kg{grid-template-columns:repeat(3,1fr);}
+}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — TABLET (≤900px)
+═══════════════════════════════════════ */
+@media(max-width:900px){
+  .mods-grid{grid-template-columns:1fr 1fr;}
+  .hero-num{font-size:44px;}
+  .t3g{grid-template-columns:1fr 1fr;}
+  .kg{grid-template-columns:repeat(2,1fr);}
+  .tc{grid-template-columns:1fr;}
+  .fg3{grid-template-columns:1fr 1fr;}
+}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — SIDEBAR DRAWER (≤800px)
+   Sidebar becomes fixed overlay drawer.
+   Hamburger appears. Sync label hidden.
+═══════════════════════════════════════ */
+@media(max-width:800px){
+  #sl{display:none;}
+  .mod-topbar-right{gap:6px;}
+  .ham-btn{display:flex;}
+  .sidebar{
+    position:fixed;top:0;left:0;
+    height:100vh;
+    z-index:var(--z-sidebar);
+    transform:translateX(-100%);
+    transition:transform var(--t-enter) ease;
+    box-shadow:var(--shm);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .mod-content{max-width:100% !important;}
+}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — MOBILE (≤600px)
+═══════════════════════════════════════ */
+@media(max-width:600px){
+  /* Spacing */
+  .mod-content{padding:1rem .75rem;}
+  /* Grids */
+  .mods-grid{grid-template-columns:1fr;}
+  .hero-metrics{grid-template-columns:1fr;}
+  .t3g{grid-template-columns:1fr;}
+  .tc{grid-template-columns:1fr;}
+  .fg,.fg3{grid-template-columns:1fr;}
+  .kg{grid-template-columns:1fr 1fr;}
+  /* Hero */
+  .hero-num{font-size:36px;}
+  .hero-card{padding:1.25rem 1rem 1rem;}
+  .hero-header{flex-wrap:wrap;gap:8px;}
+  /* Topbar */
+  .home-date{display:none;}
+  .mod-topbar-right{gap:6px;}
+  .bs{display:none;} /* brand subtitle in topbar */
+  /* Module cards */
+  .mc-stat{font-size:24px;}
+  /* CTA button in module cards */
+  .mc-open-btn{width:100%;justify-content:center;}
+  /* Settings rows stack */
+  .cr{flex-direction:column;align-items:flex-start;gap:5px;}
+  .cr label{min-width:0;}
+  .cr input{max-width:100%;width:100%;}
+  /* Form action buttons — full width */
+  .fa{justify-content:stretch;}
+  .fa .btn{flex:1;}
+}
+
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — SMALL PHONES (≤480px)
+═══════════════════════════════════════ */
+@media(max-width:480px){
+  .hero-num{font-size:30px;}
+  .hero-rmb{font-size:13px;}
+  .period-badge{font-size:10px;padding:3px 8px;}
+  .kg{grid-template-columns:1fr;}
+  .mod-topbar{padding:0 .75rem;}
+  .lk-card{padding:1.5rem 1.25rem;}
+  th,td{padding:7px 8px;font-size:12px;}
+  .filter-bar select,.filter-bar input{font-size:12px;}
+}
+
+
+/* ═══════════════════════════════════════
+   UTILITY CLASSES
+═══════════════════════════════════════ */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tabular{font-variant-numeric:tabular-nums;}
+.uppercase{text-transform:uppercase;letter-spacing:.08em;}
+.muted{color:var(--tx2);}
+.danger{color:var(--rdx);}
+.success{color:var(--ac);}
+.mt-1{margin-top:.5rem;}
+.mt-2{margin-top:1rem;}
+.mt-3{margin-top:1.25rem;}
+.mb-1{margin-bottom:.5rem;}
+.mb-2{margin-bottom:1rem;}
+.flex-row{display:flex;align-items:center;gap:8px;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+
+
+/* ═══════════════════════════════════════
+   ACCESSIBILITY
+═══════════════════════════════════════ */
+:focus-visible{
+  outline:2px solid var(--ac);
+  outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  *,::before,::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+
+/* ═══════════════════════════════════════
+   FEATHER ICON REFERENCE (inline SVG only)
+   ─────────────────────────────────────
+   Attributes: stroke="currentColor"
+               stroke-width="2" (nav items)
+               stroke-width="1.75" (cards)
+               stroke-linecap="round"
+               stroke-linejoin="round"
+               fill="none"
+               width/height: 14px (sidebar), 15-16px (topbar)
+
+   home           → hub / overview
+   trending-up    → revenue
+   credit-card    → expense / payments
+   file-text      → P&L / reports / documents
+   package        → inventory / products
+   box            → product hub
+   bar-chart-2    → marketing analytics
+   users          → KOL / B2B / team
+   settings       → config / settings (sliders icon)
+   search         → search
+   moon           → dark mode (toggle)
+   sun            → light mode (toggle)
+   lock           → security / locked state
+   chevron-left   → sidebar collapse (rotates 180deg when collapsed)
+   menu           → hamburger (mobile only)
+   calendar       → dates / planning
+   clock          → countdown / timeline
+   check-circle   → completed / done
+   alert-circle   → warning / blocked
+   zap            → active / in progress
+   plus-circle    → add new entry
+   tag            → category / label
+   award          → ranking / top partner
+   globe          → country / international
+═══════════════════════════════════════ */
