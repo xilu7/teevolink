@@ -13,7 +13,7 @@ export function useHidAction() {
     if (!ready) {
       notify(
         failMsg ||
-          "鼠标未上线：先晃动唤醒 → 点「同步设备」→ 右上角显示「已连接」后再改"
+          "还不能写入鼠标：① 底部开关拨到 2.4G ② 打开电源并晃动 ③ 点「同步设备」直到右上角「已连接」"
       );
       return false;
     }

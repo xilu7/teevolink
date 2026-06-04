@@ -24,7 +24,7 @@ const specs = [
 ];
 
 /** 改这个数字并 push 后，页脚能确认 Vercel 是否已更新 */
-const BUILD_TAG = "2026-06-04-d";
+const BUILD_TAG = "2026-06-04-e";
 
 const modules = [
   { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
@@ -142,7 +142,8 @@ function sleep(ms) {
       <section class="home-block home-connect-block">
         <h2 class="section-label">连接</h2>
         <p class="connect-hint">
-          插入接收器或 USB 线 → 点击按钮 → 在弹窗中选择 <strong>RapidSync</strong> → 晃动唤醒鼠标。
+          插入 RapidSync 接收器 → 点「首次连接」→ 弹窗选 <strong>RapidSync（PID F516）</strong> →
+          鼠标拨到 <strong>2.4G</strong> 并晃动唤醒。页脚版本 {{ BUILD_TAG }} 用于确认是否最新网页。
         </p>
         <div class="connect-actions">
           <button

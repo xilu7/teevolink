@@ -20,6 +20,7 @@ const {
   battery,
   isWired,
   dongleTypeLabel,
+  connectStateLabel,
   deviceInfo,
   mouseCfg,
   disconnect,
@@ -215,8 +216,12 @@ async function onPair() {
           <li><strong>有线：</strong>数据线连电脑后同样点「同步设备」，一般比 2.4G 更容易显示「已连接 · 有线」。</li>
         </ol>
         <p class="diag">
-          检测：{{ dongleTypeLabel }} · 鼠标在线信号 {{ online ? "有" : "无" }}
-          <span v-if="pollSeconds"> · 已等待 {{ pollSeconds }} 秒（自动检测中）</span>
+          检测：{{ dongleTypeLabel }} · 在线信号 {{ online ? "有" : "无" }} · SDK状态
+          {{ connectStateLabel }}
+          <span v-if="pollSeconds"> · 已等待 {{ pollSeconds }} 秒</span>
+        </p>
+        <p v-if="!deviceOpen" class="diag diag-warn">
+          浏览器未授权：请回首页点「首次连接」，弹窗中必须选择 <strong>RapidSync</strong> 并点允许。
         </p>
         <div class="banner-actions">
           <button
@@ -324,6 +329,10 @@ async function onPair() {
   font-size: 0.78rem;
   color: var(--tx3);
   margin: 0.5rem 0;
+}
+.diag-warn {
+  color: var(--amx);
+  font-weight: 600;
 }
 .banner-actions {
   margin-top: 0.5rem;

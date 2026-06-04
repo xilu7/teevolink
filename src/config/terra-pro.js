@@ -83,8 +83,15 @@ export const PRODUCT = {
   dongleProductNameHint: "RapidSync",
 };
 
-/** Web HID 筛选：RapidSync 接收器 VID */
-export const HID_FILTERS = [{ vendorId: 0x3554 }];
+/**
+ * Web HID 筛选（与工厂 SDK 示例一致）
+ * - RapidSync 接收器：VID 0x3554 · PID 0xF516
+ * - 第二条仅 VID：兼容 USB 有线等同厂设备
+ */
+export const HID_FILTERS = [
+  { vendorId: 0x3554, productId: 0xf516 },
+  { vendorId: 0x3554 },
+];
 
 /** 连接设备前的简短说明（首页/引导用） */
 export const CONNECT_GUIDE = [
