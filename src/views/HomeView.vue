@@ -1,20 +1,54 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { CONNECT_GUIDE } from "@/config/terra-pro.js";
+import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import AppTopbar from "@/components/layout/AppTopbar.vue";
 import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
+import IconUnplug from "@/components/icons/IconUnplug.vue";
 
 const router = useRouter();
-const { connect, autoConnectFromFactory, syncDevice, deviceOpen, isReady } = useDevice();
+const {
+  connect,
+  syncDevice,
+  deviceOpen,
+  isReady,
+  online,
+  connecting,
+  isWired,
+  disconnect,
+} = useDevice();
 
 const busy = ref(false);
 const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-x";
+const BUILD_TAG = "2026-06-04-y";
+
+const homeStatusText = computed(() => {
+  if (!deviceOpen.value) return "";
+  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
+  if (connecting.value) return "同步中";
+  if (online.value) return "鼠标在线";
+  return "接收器已就绪";
+});
+
+async function onDisconnect() {
+  if (busy.value) return;
+  await disconnect();
+}
+
+onMounted(async () => {
+  if (deviceOpen.value && isReady.value) {
+    try {
+      await syncDpiSensorFromFlash();
+    } catch (e) {
+      console.warn("home syncDpi", e);
+    }
+  }
+});
 
 async function runConnect() {
   if (busy.value) return;
@@ -79,6 +113,24 @@ function openSettings() {
       <template #meta>
         <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
       </template>
+      <template v-if="deviceOpen" #status>
+        <span class="sync-pill home-sync-pill">
+          <span class="sd" :class="isReady ? '' : online ? 'w' : 'e'" />
+          {{ homeStatusText }}
+        </span>
+      </template>
+      <template v-if="deviceOpen" #actions>
+        <button
+          type="button"
+          class="topbar-icon-btn danger"
+          title="断开连接"
+          aria-label="断开连接"
+          :disabled="busy"
+          @click="onDisconnect"
+        >
+          <IconUnplug />
+        </button>
+      </template>
     </AppTopbar>
 
     <main class="container home-main">
@@ -123,6 +175,18 @@ function openSettings() {
 </template>
 
 <style scoped>
+.home-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--tx2);
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: var(--bg2);
+}
 .home-main {
   padding: 1rem 0 2rem;
   display: flex;

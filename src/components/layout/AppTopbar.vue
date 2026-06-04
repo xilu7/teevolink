@@ -45,7 +45,9 @@ const { isDark, toggleTheme } = useTheme();
           <IconSun v-if="isDark" />
           <IconMoon v-else />
         </button>
-        <slot name="actions" />
+        <div v-if="$slots.actions" class="topbar-actions">
+          <slot name="actions" />
+        </div>
       </div>
     </div>
   </header>
@@ -153,5 +155,10 @@ const { isDark, toggleTheme } = useTheme();
   color: #c62828;
   border-color: color-mix(in srgb, #c62828 35%, var(--bd));
   background: color-mix(in srgb, #c62828 8%, var(--bg2));
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 </style>

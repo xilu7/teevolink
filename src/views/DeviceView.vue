@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, provide, onMounted, onUnmounted, watch, KeepAlive } from "vue";
-import IconDisconnect from "@/components/icons/IconDisconnect.vue";
+import IconHome from "@/components/icons/IconHome.vue";
+import IconUnplug from "@/components/icons/IconUnplug.vue";
 import { uiDiagLog } from "@/composables/useUiDiag.js";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
@@ -209,6 +210,11 @@ onMounted(async () => {
 
 onUnmounted(() => stopAutoPoll());
 
+function goHome() {
+  stopAutoPoll();
+  router.push("/");
+}
+
 async function onDisconnect() {
   stopAutoPoll();
   await disconnect();
@@ -272,7 +278,7 @@ async function onPair() {
   <div class="driver-page driver-shell">
     <AppTopbar logo-size="sm">
       <template #meta>
-        <span class="driver-ver">2026-06-04-x</span>
+        <span class="driver-ver">2026-06-04-y</span>
       </template>
       <template #status>
         <span class="sync-pill">
@@ -283,12 +289,21 @@ async function onPair() {
       <template #actions>
         <button
           type="button"
+          class="topbar-icon-btn"
+          title="返回首页（保持连接）"
+          aria-label="返回首页"
+          @click="goHome"
+        >
+          <IconHome />
+        </button>
+        <button
+          type="button"
           class="topbar-icon-btn danger"
-          title="断开连接并返回首页"
+          title="断开连接"
           aria-label="断开连接"
           @click="onDisconnect"
         >
-          <IconDisconnect />
+          <IconUnplug />
         </button>
       </template>
     </AppTopbar>
