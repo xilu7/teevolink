@@ -1,6 +1,6 @@
 <script setup>
 
-import { computed, inject } from "vue";
+import { computed, inject, ref, watch } from "vue";
 
 import { useDevice } from "@/composables/useDevice.js";
 
@@ -43,11 +43,11 @@ const reportRates = [125, 250, 500, 1000, 2000, 4000, 8000];
 const maxHz = computed(() => deviceInfo.maxReportRate || PRODUCT.maxReportRate);
 
 const STAGE_COUNT = PRODUCT.defaultDpiStageCount;
-const presetList = computed(() =>
-  PRODUCT.defaultDpiPresets.slice(0, STAGE_COUNT).map((value, i) => ({
-    value,
-    stage: i + 1,
+
+const stageRows = computed(() =>
+  Array.from({ length: STAGE_COUNT }, (_, i) => ({
     index: i,
+    stage: i + 1,
   }))
 );
 
@@ -56,7 +56,44 @@ const activeDpi = computed(() => {
   return mouseCfg.value.dpis[i]?.value ?? 0;
 });
 
-const currentStage = computed(() => getDpiStageLabel(mouseCfg.value));
+const currentStageIndex = computed(() => getDpiStageIndex(mouseCfg.value));
+
+/** 各档 Flash 中的 DPI（与接收器一致） */
+const stageDpisFromDevice = computed(() =>
+  Array.from({ length: STAGE_COUNT }, (_, i) => {
+    const v = mouseCfg.value.dpis[i]?.value;
+    return v != null && v > 0 ? v : PRODUCT.defaultDpiPresets[i] ?? DPI_MIN;
+  })
+);
+
+const stageEdits = ref([...PRODUCT.defaultDpiPresets]);
+watch(
+  stageDpisFromDevice,
+  (vals) => {
+    stageEdits.value = vals.map((v) => v);
+  },
+  { immediate: true }
+);
+
+/** 滑条预览值，点保存后才写入当前档 */
+const fineDraft = ref(null);
+const heroDpi = computed(() =>
+  fineDraft.value != null ? fineDraft.value : activeDpi.value
+);
+
+watch(
+  () => [activeDpi.value, currentStageIndex.value],
+  () => {
+    fineDraft.value = null;
+  }
+);
+
+function clampDpi(dpi) {
+  const n = Number(dpi);
+  if (!Number.isFinite(n)) return DPI_MIN;
+  const snapped = Math.round(n / DPI_STEP) * DPI_STEP;
+  return Math.min(DPI_MAX, Math.max(DPI_MIN, snapped));
+}
 
 const reportRate = computed(() => mouseCfg.value.reportRate);
 
@@ -88,42 +125,63 @@ async function setProfile(n) {
 
 
 
-function presetActive(item) {
-  return currentStage.value === item.stage;
+function stageIsActive(index) {
+  return currentStageIndex.value === index;
 }
 
-/** 每个预设对应固定档位（1～4），写入并切换到该档（SDK 当前档为 0 起算） */
-async function applyDpiPreset(item) {
-  const dpi = Number(item.value);
-  const stage = item.stage;
-  const idx = item.index;
+async function selectStage(index) {
+  if (stageIsActive(index)) return;
   await run(
     async () => {
-      const r = await writeMouseDpi(idx, dpi);
+      const ok = await HID.Set_MS_CurrentDPI(index);
+      return ok !== false;
+    },
+    `切换到第 ${index + 1} 档`
+  );
+}
+
+async function saveStageSlot(index) {
+  const dpi = clampDpi(stageEdits.value[index]);
+  stageEdits.value[index] = dpi;
+  const applyStage = stageIsActive(index);
+  await run(
+    async () => {
+      const r = await writeMouseDpi(index, dpi, { applyStage });
       if (!r.ok) {
         console.warn("writeMouseDpi", r);
         return false;
       }
       return true;
     },
-    `档位 ${stage} → ${dpi} DPI`,
+    `第 ${index + 1} 档已保存 ${dpi} DPI`,
     "DPI 写入失败，请打开 /diag/dpi 诊断"
   );
 }
 
-async function setDpiFine(val) {
-  const idx = getDpiStageIndex(mouseCfg.value);
-  const dpi = Number(val);
-  if (!Number.isFinite(dpi) || dpi < DPI_MIN || dpi > DPI_MAX) return;
+async function saveFineToCurrentStage() {
+  const idx = currentStageIndex.value;
+  const dpi = clampDpi(fineDraft.value ?? activeDpi.value);
+  fineDraft.value = dpi;
   await run(
     async () => {
       const r = await writeMouseDpi(idx, dpi);
       if (!r.ok) return false;
+      fineDraft.value = null;
       return true;
     },
-    `DPI ${dpi}`,
+    `当前档已保存 ${dpi} DPI`,
     "DPI 写入失败，请打开 /diag/dpi 诊断"
   );
+}
+
+function onStageInput(index) {
+  stageEdits.value[index] = clampDpi(stageEdits.value[index]);
+}
+
+function onSliderInput(v) {
+  const dpi = clampDpi(v);
+  fineDraft.value = dpi;
+  stageEdits.value[currentStageIndex.value] = dpi;
 }
 
 
@@ -166,12 +224,6 @@ async function setAngle(on) {
 
   await run(() => HID.Set_MS_Angle(on ? 1 : 0), on ? "直线修正开" : "直线修正关");
 
-}
-
-let dpiInputTimer;
-function onDpiSliderInput(v) {
-  clearTimeout(dpiInputTimer);
-  dpiInputTimer = setTimeout(() => setDpiFine(v), 400);
 }
 
 </script>
@@ -241,49 +293,59 @@ function onDpiSliderInput(v) {
       </header>
 
       <div class="dpi-hero-num">
-
-        <strong>{{ activeDpi }}</strong>
-
-        <span>当前档位 {{ currentStage }} · {{ STAGE_COUNT }} 档固定 · {{ DPI_STEP }} 步进</span>
-
+        <strong>{{ heroDpi }}</strong>
       </div>
 
-      <div class="chip-row">
-
-        <button
-          v-for="item in presetList"
-          :key="item.stage"
-          type="button"
-          class="chip-btn"
-          :class="{ active: presetActive(item) }"
-          @click="applyDpiPreset(item)"
+      <div class="dpi-stage-grid">
+        <div
+          v-for="row in stageRows"
+          :key="row.index"
+          class="dpi-stage-card"
+          :class="{ active: stageIsActive(row.index) }"
+          @click="selectStage(row.index)"
         >
-          <span class="chip-main">{{ item.value }}</span>
-          <small class="chip-sub">档{{ item.stage }}</small>
-        </button>
-
+          <span class="dpi-stage-label">档{{ row.stage }}</span>
+          <input
+            type="number"
+            class="dpi-stage-input"
+            :min="DPI_MIN"
+            :max="DPI_MAX"
+            :step="DPI_STEP"
+            v-model.number="stageEdits[row.index]"
+            @click.stop
+            @change="onStageInput(row.index)"
+          />
+          <button
+            type="button"
+            class="dpi-stage-save"
+            :disabled="!isReady"
+            @click.stop="saveStageSlot(row.index)"
+          >
+            保存
+          </button>
+        </div>
       </div>
 
-      <div class="compact-slider">
-
-        <label><span>精细调节</span><span>{{ activeDpi }}</span></label>
-
+      <div class="compact-slider dpi-fine-block">
+        <label><span>精细调节</span><span>{{ heroDpi }}</span></label>
         <input
-          :key="'dpi-range-' + activeDpi + '-' + currentStage"
-          :value="activeDpi"
+          :value="heroDpi"
           type="range"
           :min="DPI_MIN"
           :max="DPI_MAX"
           :step="DPI_STEP"
-          @input="onDpiSliderInput($event.target.value)"
+          :disabled="!isReady"
+          @input="onSliderInput($event.target.value)"
         />
-
+        <button
+          type="button"
+          class="dpi-save-current"
+          :disabled="!isReady"
+          @click="saveFineToCurrentStage"
+        >
+          保存到当前档
+        </button>
       </div>
-
-      <p class="dpi-hint panel-grow-end">
-        点预设会<strong>写入并切换到对应档位</strong>。无效时请打开
-        <router-link to="/diag/dpi">DPI 诊断</router-link>。
-      </p>
     </section>
 
 
@@ -478,25 +540,80 @@ function onDpiSliderInput(v) {
   margin-top: auto;
   padding-top: 0.35rem;
 }
-.dpi-hint {
-  font-size: 0.65rem;
-  color: var(--tx3);
-  line-height: 1.45;
-  margin: 0.5rem 0 0;
+.dpi-hero-num span {
+  display: none;
 }
-.dpi-hint a {
-  color: var(--acd);
+.dpi-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+.dpi-stage-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: var(--bg2, #f5f5f5);
+  cursor: pointer;
+}
+.dpi-stage-card.active {
+  border-color: var(--acd);
+  background: color-mix(in srgb, var(--acd) 12%, transparent);
+}
+.dpi-stage-label {
+  font-size: 0.62rem;
   font-weight: 600;
+  color: var(--tx3);
+  white-space: nowrap;
 }
-.chip-btn .chip-main {
-  display: block;
+.dpi-stage-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  font-size: 0.78rem;
   font-weight: 700;
+  text-align: center;
+  background: var(--bg, #fff);
+  color: var(--tx);
 }
-.chip-btn .chip-sub {
-  display: block;
-  font-size: 0.58rem;
-  opacity: 0.75;
-  font-weight: 500;
+.dpi-stage-save {
+  padding: 0.2rem 0.45rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  background: var(--tx);
+  color: var(--bg);
+  cursor: pointer;
+}
+.dpi-stage-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.dpi-fine-block {
+  margin-top: 0.15rem;
+}
+.dpi-save-current {
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--acd);
+  color: #fff;
+  cursor: pointer;
+}
+.dpi-save-current:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>
 

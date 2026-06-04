@@ -13,7 +13,13 @@ function layoutKind() {
 /**
  * Terra Pro：仅 3950 区（0x0C）+ sensor.json 3950 步进表
  */
-export async function writeMouseDpi(index, dpi) {
+/**
+ * @param {number} index 档位下标 0 起算
+ * @param {number} dpi
+ * @param {{ applyStage?: boolean }} options applyStage=false 时只写该档数值，不切换当前档
+ */
+export async function writeMouseDpi(index, dpi, options = {}) {
+  const { applyStage = true } = options;
   await syncDpiSensorFromFlash();
 
   const kind = layoutKind();
@@ -42,12 +48,15 @@ export async function writeMouseDpi(index, dpi) {
     return { ok: false, error: `档位下标无效（0～${PRODUCT.defaultDpiStageCount - 1}）` };
   }
 
-  const applied = await HID.Set_MS_CurrentDPI(index);
-  if (applied === false) {
-    return { ok: false, error: "应用当前档位失败" };
+  if (applyStage) {
+    const applied = await HID.Set_MS_CurrentDPI(index);
+    if (applied === false) {
+      return { ok: false, error: "应用当前档位失败" };
+    }
+    await sleep(120);
+  } else {
+    await sleep(80);
   }
-
-  await sleep(120);
   try {
     await HID.Get_Device_Eeprom_Buffer(0x0c + index * 4, 4);
     await sleep(80);
