@@ -54,9 +54,11 @@ export function useDevice() {
 
   async function init() {
     await loadSensorCatalog();
+    applySensorConfig(PRODUCT.sensorType);
     HID.deviceInfo.type = "mouse";
     HID.visit = false;
-    HID.Set_DriverOnline(true);
+    /** 工厂注释：网页驱动 Set_PC_Satae 暂时不用，避免多余指令干扰 */
+    HID.Set_DriverOnline(false);
     registerHidListeners();
   }
 
@@ -132,7 +134,10 @@ export function useDevice() {
     const target = dev ?? (await getAuthorizedDevice()) ?? (await pickDeviceFromHistory());
     if (!target) return false;
     try {
+      applySensorConfig(PRODUCT.sensorType);
       await HID.Device_Reconnect(target);
+      const online = await HID.Get_Current_Device_Online(target);
+      if (!online) return !!HID.deviceInfo.deviceOpen;
       await HID.Device_Connect();
       return !!HID.deviceInfo.deviceOpen;
     } catch (e) {
@@ -169,7 +174,7 @@ export function useDevice() {
   /**
    * 安静等待 SDK 变为 Connected（不反复 Device_Connect / recover，避免界面闪烁）
    */
-  async function finishConnect(maxMs = 16000) {
+  async function finishConnect(maxMs = 45000) {
     const start = Date.now();
     while (Date.now() - start < maxMs) {
       if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {

@@ -14,7 +14,7 @@ const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-j";
+const BUILD_TAG = "2026-06-04-k";
 
 async function runConnect() {
   if (busy.value) return;
@@ -26,7 +26,7 @@ async function runConnect() {
   }
 
   busy.value = true;
-  statusMsg.value = "正在连接，请稍候（约 20 秒）…";
+  statusMsg.value = "正在连接，首次可能需 30～60 秒，请勿关闭页面…";
   try {
     let ready = false;
     let message = "";
@@ -68,14 +68,6 @@ function openSettings() {
   router.push("/device");
 }
 
-onMounted(async () => {
-  if (!navigator.hid) return;
-  try {
-    await autoConnectFromFactory({ quick: true, silent: true });
-  } catch (e) {
-    console.warn("home auto connect", e);
-  }
-});
 </script>
 
 <template>
@@ -101,7 +93,10 @@ onMounted(async () => {
 
       <section v-if="!deviceOpen" class="home-hint">
         <p><strong>首次使用：</strong>插入 RapidSync → 点「连接设备」→ 弹窗选 RapidSync → 允许。</p>
-        <p>鼠标请拨到 <strong>2.4G</strong>，打开电源并晃动唤醒。</p>
+        <p>鼠标请拨到 <strong>2.4G</strong>（或 USB 线直连），打开电源并晃动唤醒。</p>
+        <p>
+          <router-link to="/diag" class="diag-link">从未连成功？点这里做连接诊断</router-link>
+        </p>
       </section>
 
       <section v-else class="home-tips">
@@ -149,6 +144,11 @@ onMounted(async () => {
 }
 .home-hint p {
   margin: 0 0 0.4rem;
+}
+.diag-link {
+  color: var(--gn);
+  font-weight: 700;
+  text-decoration: underline;
 }
 .home-tips {
   padding: 0.85rem 1rem;

@@ -10,8 +10,4 @@ const { loadTheme } = useTheme();
 loadTheme();
 useUiScale().loadUiScale();
 
-if (typeof navigator !== "undefined" && navigator.hid) {
-  HID.Add_Listen_HID_Events();
-}
-
 createApp(App).use(router).mount("#app");
