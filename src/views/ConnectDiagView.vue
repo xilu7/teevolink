@@ -137,7 +137,11 @@ async function runFactoryDiag() {
         {{ running ? "诊断中…" : "开始诊断（约 1 分钟）" }}
       </button>
       <pre class="log-box">{{ logs.join("\n") || "等待开始…" }}</pre>
-      <p class="hint">把上面灰框文字全选复制发给我们。成功后回首页即可正常使用。</p>
+      <p class="hint">
+        把上面灰框文字全选复制发给我们。成功后回首页即可正常使用。
+        DPI 能连上但改不动？请用
+        <router-link to="/diag/dpi">DPI 专项诊断</router-link>。
+      </p>
     </main>
   </div>
 </template>

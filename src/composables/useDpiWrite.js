@@ -43,7 +43,22 @@ export async function writeMouseDpi(index, dpi, stage) {
     return { ok: false, error: "应用当前档位失败" };
   }
 
-  await sleep(100);
+  await sleep(120);
+  try {
+    await HID.Get_Device_Eeprom_Buffer(0x0c + index * 4, 4);
+    await sleep(80);
+  } catch (e) {
+    console.warn("Get_Device_Eeprom_Buffer", e);
+  }
   HID.refreshMouseDpiFromFlash();
-  return { ok: true, kind, dpi: clamped };
+
+  const readBack = HID.deviceInfo.mouseCfg.dpis[index]?.value;
+  const stageNow = HID.deviceInfo.mouseCfg.currentDpi;
+  if (Math.abs(readBack - clamped) >= PRODUCT.dpiStep) {
+    return {
+      ok: false,
+      error: `写入后读回 ${readBack}，期望 ${clamped}（区 ${kind}）`,
+    };
+  }
+  return { ok: true, kind, dpi: clamped, stage: stageNow };
 }

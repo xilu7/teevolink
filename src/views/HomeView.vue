@@ -14,7 +14,7 @@ const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
 
-const BUILD_TAG = "2026-06-04-r";
+const BUILD_TAG = "2026-06-04-s";
 
 async function runConnect() {
   if (busy.value) return;
@@ -96,6 +96,8 @@ function openSettings() {
         <p>鼠标请拨到 <strong>2.4G</strong>（或 USB 线直连），打开电源并晃动唤醒。</p>
         <p>
           <router-link to="/diag" class="diag-link">从未连成功？点这里做连接诊断</router-link>
+          ·
+          <router-link to="/diag/dpi" class="diag-link">DPI 改不动？DPI 诊断</router-link>
         </p>
       </section>
 
@@ -106,6 +108,9 @@ function openSettings() {
         </ul>
         <p v-if="isReady" class="tips-go">已连接。点「打开驱动设置」改 DPI。</p>
         <p v-else class="tips-warn">若 20 秒仍未连接：2.4G + 唤醒 → 点「重新同步」。</p>
+        <p>
+          <router-link to="/diag/dpi" class="diag-link">DPI 不生效或档位数不对？打开 DPI 专项诊断</router-link>
+        </p>
       </section>
 
       <p v-if="success" class="feedback success">{{ success }}</p>

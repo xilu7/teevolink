@@ -254,6 +254,9 @@ async function onPair() {
 <template>
   <div class="driver-page driver-shell">
     <AppTopbar logo-size="sm">
+      <template #meta>
+        <span class="driver-ver">2026-06-04-s</span>
+      </template>
       <template #status>
         <span class="sync-pill">
           <span class="sd" :class="statusDotClass" />

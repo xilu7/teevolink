@@ -41,7 +41,14 @@ const reportRates = [125, 250, 500, 1000, 2000, 4000, 8000];
 
 const maxHz = computed(() => deviceInfo.maxReportRate || PRODUCT.maxReportRate);
 
-const maxStage = computed(() => mouseCfg.value.maxDpiStage);
+const STAGE_COUNT = PRODUCT.defaultDpiStageCount;
+const presetList = computed(() =>
+  PRODUCT.defaultDpiPresets.slice(0, STAGE_COUNT).map((value, i) => ({
+    value,
+    stage: i + 1,
+    index: i,
+  }))
+);
 
 const activeDpi = computed(() => {
 
@@ -83,23 +90,15 @@ async function setProfile(n) {
 
 
 
-async function setStage(v) {
-
-  await run(() => HID.Set_MS_CurrentDPI(Number(v)), `第 ${v} 档`);
-
+function presetActive(item) {
+  return currentStage.value === item.stage;
 }
 
-
-
-function presetActive(p) {
-  return Math.abs(activeDpi.value - p) < DPI_STEP;
-}
-
-async function setDpiValue(val) {
-  const idx = Math.max(0, currentStage.value - 1);
-  const stage = Number(currentStage.value);
-  const dpi = Number(val);
-  if (!Number.isFinite(dpi) || dpi < DPI_MIN || dpi > DPI_MAX) return;
+/** 每个预设对应固定档位（1～5），写入并切换到该档 */
+async function applyDpiPreset(item) {
+  const dpi = Number(item.value);
+  const stage = item.stage;
+  const idx = item.index;
   await run(
     async () => {
       const r = await writeMouseDpi(idx, dpi, stage);
@@ -109,17 +108,25 @@ async function setDpiValue(val) {
       }
       return true;
     },
-    `DPI ${dpi}`,
-    "DPI 写入失败：请晃动鼠标，或拔插接收器后重试"
+    `档位 ${stage} → ${dpi} DPI`,
+    "DPI 写入失败，请打开 /diag/dpi 诊断"
   );
 }
 
-
-
-async function setMaxStages(n) {
-
-  await run(() => HID.Set_MS_MaxDPI(Number(n)), `${n} 档`);
-
+async function setDpiFine(val) {
+  const idx = Math.max(0, (currentStage.value || 1) - 1);
+  const stage = Number(currentStage.value || 1);
+  const dpi = Number(val);
+  if (!Number.isFinite(dpi) || dpi < DPI_MIN || dpi > DPI_MAX) return;
+  await run(
+    async () => {
+      const r = await writeMouseDpi(idx, dpi, stage);
+      if (!r.ok) return false;
+      return true;
+    },
+    `DPI ${dpi}`,
+    "DPI 写入失败，请打开 /diag/dpi 诊断"
+  );
 }
 
 
@@ -167,7 +174,7 @@ async function setAngle(on) {
 let dpiInputTimer;
 function onDpiSliderInput(v) {
   clearTimeout(dpiInputTimer);
-  dpiInputTimer = setTimeout(() => setDpiValue(v), 400);
+  dpiInputTimer = setTimeout(() => setDpiFine(v), 400);
 }
 
 </script>
@@ -240,30 +247,22 @@ function onDpiSliderInput(v) {
 
         <strong>{{ activeDpi }}</strong>
 
-        <span>第 {{ currentStage }} / {{ maxStage }} 档 · {{ DPI_STEP }} 步进</span>
+        <span>当前档位 {{ currentStage }} · {{ STAGE_COUNT }} 档固定 · {{ DPI_STEP }} 步进</span>
 
       </div>
 
       <div class="chip-row">
 
         <button
-
-          v-for="p in PRESETS"
-
-          :key="p"
-
+          v-for="item in presetList"
+          :key="item.stage"
           type="button"
-
           class="chip-btn"
-
-          :class="{ active: presetActive(p) }"
-
-          @click="setDpiValue(p)"
-
+          :class="{ active: presetActive(item) }"
+          @click="applyDpiPreset(item)"
         >
-
-          {{ p }}
-
+          <span class="chip-main">{{ item.value }}</span>
+          <small class="chip-sub">档{{ item.stage }}</small>
         </button>
 
       </div>
@@ -284,50 +283,10 @@ function onDpiSliderInput(v) {
 
       </div>
 
-      <div class="side-rail panel-grow-end">
-
-        <div class="compact-slider">
-
-          <label><span>档位数</span><span>{{ maxStage }}</span></label>
-
-          <input
-
-            :value="maxStage"
-
-            type="range"
-
-            min="1"
-
-            :max="PRODUCT.maxDpiStages"
-
-            @change="setMaxStages($event.target.value)"
-
-          />
-
-        </div>
-
-        <div class="compact-slider">
-
-          <label><span>当前档</span><span>{{ currentStage }}</span></label>
-
-          <input
-
-            :value="currentStage"
-
-            type="range"
-
-            min="1"
-
-            :max="maxStage"
-
-            @change="setStage($event.target.value)"
-
-          />
-
-        </div>
-
-      </div>
-
+      <p class="dpi-hint panel-grow-end">
+        点预设会<strong>写入并切换到对应档位</strong>。无效时请打开
+        <router-link to="/diag/dpi">DPI 诊断</router-link>。
+      </p>
     </section>
 
 
@@ -519,13 +478,29 @@ function onDpiSliderInput(v) {
 }
 
 .panel-grow-end {
-
   margin-top: auto;
-
   padding-top: 0.35rem;
-
 }
-
+.dpi-hint {
+  font-size: 0.65rem;
+  color: var(--tx3);
+  line-height: 1.45;
+  margin: 0.5rem 0 0;
+}
+.dpi-hint a {
+  color: var(--acd);
+  font-weight: 600;
+}
+.chip-btn .chip-main {
+  display: block;
+  font-weight: 700;
+}
+.chip-btn .chip-sub {
+  display: block;
+  font-size: 0.58rem;
+  opacity: 0.75;
+  font-weight: 500;
+}
 </style>
 
 
