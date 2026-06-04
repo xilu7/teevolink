@@ -1,13 +1,13 @@
 <script setup>
 import { ref } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
-import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
+import { useHidAction } from "@/composables/useHidAction.js";
 import SettingCard from "@/components/ui/SettingCard.vue";
 import HelpTip from "@/components/ui/HelpTip.vue";
 import { hexToRgbString, toHexColor } from "@/utils/color.js";
 
 const { HID, deviceInfo, mouseCfg } = useDevice();
-const { notify } = useSettingFeedback();
+const { run } = useHidAction();
 
 const showLighting = ref(false);
 const profileNames = ["竞技", "办公", "FPS", "自定义"];
@@ -23,37 +23,37 @@ const SLEEP_LEVELS = [
 ];
 
 async function setProfile(n) {
-  await HID.Set_Device_Profile(Number(n));
-  notify(`已切换到${profileNames[n] || "配置 " + (n + 1)}`);
+  await run(
+    () => HID.Set_Device_Profile(Number(n)),
+    `已切换到${profileNames[n] || "配置 " + (n + 1)}`
+  );
 }
 
 async function setMode(mode) {
-  await HID.Set_MS_LightMode(Number(mode));
-  notify("灯效模式已更新");
+  await run(() => HID.Set_MS_LightMode(Number(mode)), "灯效模式已更新");
 }
 async function setBrightness(v) {
-  await HID.Set_MS_LightBrightness(Number(v));
+  await run(() => HID.Set_MS_LightBrightness(Number(v)));
 }
 async function setSpeed(v) {
-  await HID.Set_MS_LightSpeed(Number(v));
+  await run(() => HID.Set_MS_LightSpeed(Number(v)));
 }
 async function setLightColor(hex) {
-  await HID.Set_MS_LightColor(hexToRgbString(hex));
-  notify("灯效颜色已更新");
+  await run(() => HID.Set_MS_LightColor(hexToRgbString(hex)), "灯效颜色已更新");
 }
 async function setDpiLightBrightness(v) {
-  await HID.Set_MS_DPILightBrightness(Number(v));
-  notify("DPI 指示灯亮度已更新");
+  await run(() => HID.Set_MS_DPILightBrightness(Number(v)), "DPI 灯亮度已更新");
 }
 async function setSleep(v) {
-  await HID.Set_MS_LightOffTime(Number(v));
-  notify(`休眠时间：${SLEEP_LEVELS[v]?.label || v}`);
+  await run(
+    () => HID.Set_MS_LightOffTime(Number(v)),
+    `休眠：${SLEEP_LEVELS[v]?.label || v}`
+  );
 }
 
 async function restore() {
   if (!confirm("恢复出厂将清除所有自定义设置，确定继续？")) return;
-  await HID.Device_Restore();
-  notify("已恢复出厂设置");
+  await run(() => HID.Device_Restore(), "已恢复出厂设置");
 }
 </script>
 

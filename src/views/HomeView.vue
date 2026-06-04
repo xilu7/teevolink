@@ -37,7 +37,8 @@ async function onConnect() {
     const ok = await connect();
     if (ok) router.push("/device");
     else {
-      error.value = "未找到设备：请插入接收器或 USB，在弹窗选择 RapidSync。";
+      error.value =
+        "未找到设备或未上线：请插入接收器/USB，弹窗选 RapidSync，并晃动鼠标唤醒后再试。";
     }
   } catch (e) {
     error.value = e?.message || "连接失败";

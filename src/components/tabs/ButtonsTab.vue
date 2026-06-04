@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
-import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
+import { useHidAction } from "@/composables/useHidAction.js";
 import SettingCard from "@/components/ui/SettingCard.vue";
 import HelpTip from "@/components/ui/HelpTip.vue";
 import { MOUSE_BUTTONS } from "@/config/mouse-buttons.js";
@@ -12,7 +12,7 @@ import {
 } from "@/config/mouse-key-functions.js";
 
 const { HID, mouseCfg } = useDevice();
-const { notify } = useSettingFeedback();
+const { run, notify } = useHidAction();
 const MKF = HID.MouseKeyFunction;
 
 const selectedBtn = ref(0);
@@ -41,21 +41,29 @@ function labelForKey(index) {
 }
 
 async function assignBasic(fn) {
-  await HID.Set_MS_KeyFunction(selectedBtn.value, { type: fn.type, param: fn.param });
-  notify(`${selectedLabel.value} → ${fn.label}`);
+  await run(
+    async () => {
+      await HID.Set_MS_KeyFunction(selectedBtn.value, { type: fn.type, param: fn.param });
+    },
+    `${selectedLabel.value} → ${fn.label}`
+  );
 }
 
 async function applyCombo() {
   const keys = comboSlots.value.filter(Boolean);
   if (!keys.length) return;
-  await HID.Set_MS_ShortcutKey(selectedBtn.value, keys);
-  await HID.Set_MS_KeyFunction(selectedBtn.value, { type: MKF.ShortcutKey, param: 0 });
-  notify(`已为 ${selectedLabel.value} 设置组合键`);
+  await run(async () => {
+    await HID.Set_MS_ShortcutKey(selectedBtn.value, keys);
+    await HID.Set_MS_KeyFunction(selectedBtn.value, { type: MKF.ShortcutKey, param: 0 });
+  }, `已为 ${selectedLabel.value} 设置组合键`);
 }
 
 async function assignMacro(i) {
-  await HID.Set_MS_KeyFunction(selectedBtn.value, { type: MKF.Macro, param: i });
-  notify(`已绑定宏 ${i + 1}`);
+  await run(
+    () =>
+      HID.Set_MS_KeyFunction(selectedBtn.value, { type: MKF.Macro, param: i }),
+    `已绑定宏 ${i + 1}`
+  );
 }
 </script>
 

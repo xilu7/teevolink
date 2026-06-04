@@ -1,82 +1,84 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
-import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
+import { useHidAction } from "@/composables/useHidAction.js";
 import SettingCard from "@/components/ui/SettingCard.vue";
 import HelpTip from "@/components/ui/HelpTip.vue";
 
-const { HID, mouseCfg, deviceInfo } = useDevice();
-const { notify } = useSettingFeedback();
+const { HID, mouseCfg, deviceInfo, isReady } = useDevice();
+const { run } = useHidAction();
 
 const showAdvanced = ref(false);
 const PRESETS = [400, 800, 1200, 1600, 2400, 3200, 6400];
 const reportRates = [125, 250, 500, 1000, 2000, 4000, 8000];
 const maxHz = computed(() => deviceInfo.maxReportRate || 8000);
 
-const stage = computed({
-  get: () => mouseCfg.value.currentDpi,
-  set: async (v) => {
-    await HID.Set_MS_CurrentDPI(Number(v));
-    notify(`已切换到第 ${v} 档 DPI`);
-  },
-});
-
 const maxStage = computed(() => mouseCfg.value.maxDpiStage);
 
 const activeDpi = computed(() => {
-  const i = Math.max(0, stage.value - 1);
+  const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
   return mouseCfg.value.dpis[i]?.value ?? 0;
 });
+
+const currentStage = computed(() => mouseCfg.value.currentDpi);
 
 const reportRate = computed(() => mouseCfg.value.reportRate);
 const sensor = computed(() => mouseCfg.value.sensor);
 
+async function setStage(v) {
+  await run(() => HID.Set_MS_CurrentDPI(Number(v)), `已切换到第 ${v} 档`);
+}
+
 async function setDpiValue(val) {
-  const idx = Math.max(0, stage.value - 1);
-  await HID.Set_MS_DPIValue(idx, Number(val));
-  notify(`本档 DPI 已设为 ${val}`);
+  const idx = Math.max(0, currentStage.value - 1);
+  await run(() => HID.Set_MS_DPIValue(idx, Number(val)), `本档 DPI：${val}`);
 }
 
 async function setMaxStages(n) {
-  await HID.Set_MS_MaxDPI(Number(n));
-  notify(`DPI 档位数：${n}`);
+  await run(() => HID.Set_MS_MaxDPI(Number(n)), `DPI 档位数：${n}`);
 }
 
 async function setRate(hz) {
   if (hz > maxHz.value) return;
-  await HID.Set_MS_ReportRate(hz);
-  notify(`回报率已设为 ${hz} Hz`);
+  await run(() => HID.Set_MS_ReportRate(hz), `回报率：${hz} Hz`);
 }
 
 async function setLod(v) {
-  await HID.Set_MS_LOD(Number(v));
-  notify(`离地高度 LOD：档位 ${v}`);
+  await run(() => HID.Set_MS_LOD(Number(v)), `LOD 档位 ${v}`);
 }
 
 async function setMotionSync(on) {
-  await HID.Set_MS_MotionSync(on ? 1 : 0);
-  notify(on ? "已开启移动同步" : "已关闭移动同步");
+  await run(
+    () => HID.Set_MS_MotionSync(on ? 1 : 0),
+    on ? "已开启移动同步" : "已关闭移动同步"
+  );
 }
 
 async function setAngle(on) {
-  await HID.Set_MS_Angle(on ? 1 : 0);
-  notify(on ? "已开启直线修正" : "已关闭直线修正（推荐竞技）");
+  await run(
+    () => HID.Set_MS_Angle(on ? 1 : 0),
+    on ? "已开启直线修正" : "已关闭直线修正"
+  );
 }
 </script>
 
 <template>
   <div class="tab-stack">
+    <p v-if="!isReady" class="tab-warn">
+      当前仅预览界面数值。要写入鼠标请先让右上角显示「已连接」，或点击下方提示中的「同步设备」。
+    </p>
+
     <SettingCard title="DPI 灵敏度" badge="基础">
       <template #desc>
         <HelpTip
-          text="DPI 越高，鼠标移动相同距离时指针在屏幕上移动越远。竞技玩家常用多档 DPI，便于瞄准时降低、扫射时提高。"
+          text="DPI（CPI）决定指针移动速度。改完后可用鼠标侧键或专用键切换档位验证是否生效。"
         />
       </template>
 
       <div class="live-value">
         <span class="live-label">当前生效</span>
         <strong class="live-num">{{ activeDpi }}</strong>
-        <span class="live-unit">DPI · 第 {{ stage }} / {{ maxStage }} 档</span>
+        <span class="live-unit">DPI · 第 {{ currentStage }} / {{ maxStage }} 档</span>
       </div>
 
       <div class="driver-dpi-presets">
@@ -113,19 +115,25 @@ async function setAngle(on) {
           max="8"
           @change="setMaxStages($event.target.value)"
         />
-        <HelpTip text="档位数决定鼠标侧键或专用键可循环切换的 DPI 数量，不影响当前灵敏度数值。" />
+        <HelpTip text="决定侧键可循环切换的 DPI 档数量。" />
       </div>
 
       <div class="driver-slider-wrap">
         <label class="driver-stat-label">切换当前档位</label>
-        <input v-model.number="stage" type="range" min="1" :max="maxStage" />
+        <input
+          :value="currentStage"
+          type="range"
+          min="1"
+          :max="maxStage"
+          @change="setStage($event.target.value)"
+        />
       </div>
     </SettingCard>
 
     <SettingCard title="回报率" badge="基础">
       <template #desc>
         <HelpTip
-          text="回报率（Hz）是鼠标每秒向电脑报告位置的次数。数值越高指针越跟手，但会更耗电、占用更多系统资源。8K 接收器最高支持 8000 Hz。"
+          text="Polling Rate（Hz）：每秒向电脑报告位置的次数。越高越跟手，耗电与 CPU 占用也更高。"
         />
       </template>
 
@@ -155,7 +163,7 @@ async function setAngle(on) {
       <SettingCard title="离地高度 LOD" badge="进阶">
         <template #desc>
           <HelpTip
-            text="LOD（Lift-Off Distance）是鼠标离开桌面后仍能追踪的高度。较低 LOD 可减少抬鼠时的误移动，多数 FPS 玩家偏好较低档位。"
+            text="抬鼠后仍能追踪的高度。FPS 玩家多选较低档位，减少抬鼠时指针漂移。"
           />
         </template>
         <div class="driver-slider-wrap">
@@ -167,7 +175,6 @@ async function setAngle(on) {
             @change="setLod($event.target.value)"
           />
           <div class="driver-slider-meta">
-            <span>档位</span>
             <strong>{{ sensor.lod }}</strong>
           </div>
         </div>
@@ -177,7 +184,7 @@ async function setAngle(on) {
         <div class="driver-toggle-row">
           <label>
             移动同步（Motion Sync）
-            <span class="sub">与显示器刷新协同，减轻高速移动时的抖动</span>
+            <span class="sub">高刷屏下减轻移动抖动</span>
           </label>
           <input
             type="checkbox"
@@ -188,7 +195,7 @@ async function setAngle(on) {
         <div class="driver-toggle-row">
           <label>
             直线修正（Angle Snapping）
-            <span class="sub">自动拉直移动轨迹；竞技建议关闭以保持精准甩枪</span>
+            <span class="sub">竞技建议关闭，避免影响甩枪精度</span>
           </label>
           <input type="checkbox" :checked="sensor.angle" @change="setAngle($event.target.checked)" />
         </div>
@@ -202,6 +209,15 @@ async function setAngle(on) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+.tab-warn {
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r);
+  background: var(--aml);
+  border: 1px solid var(--bd);
+  color: var(--amx);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 .live-value {
   display: flex;
@@ -223,7 +239,6 @@ async function setAngle(on) {
   font-size: 1.75rem;
   font-weight: 800;
   color: var(--acd);
-  letter-spacing: -0.02em;
 }
 .live-unit {
   font-size: 0.85rem;
@@ -252,25 +267,16 @@ async function setAngle(on) {
   background: var(--bg2);
   font-weight: 600;
   font-size: 0.9rem;
-  color: var(--tx);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.accordion-trigger:hover {
-  border-color: var(--bd2);
-  background: var(--bg);
 }
 .accordion-meta {
   flex: 1;
   text-align: right;
   font-size: 0.78rem;
-  font-weight: 500;
   color: var(--tx3);
 }
 .accordion-chev {
-  display: inline-block;
-  transition: transform 0.2s ease;
-  color: var(--tx3);
+  transition: transform 0.2s;
 }
 .accordion-chev.open {
   transform: rotate(90deg);
