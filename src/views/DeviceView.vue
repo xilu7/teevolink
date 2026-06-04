@@ -39,6 +39,7 @@ const booting = ref(true);
 const pollSeconds = ref(0);
 let autoPollTimer = null;
 let connectingWatchStart = 0;
+let syncWarned = false;
 
 const tabs = [
   { id: "performance", label: "性能调校", hint: "场景 · DPI · LOD · 回报率" },
@@ -49,11 +50,11 @@ const tabs = [
 const profileLabel = computed(() => (deviceInfo.profile ?? 0) + 1);
 
 const connectionText = computed(() => {
-  if (!deviceOpen.value) return "未授权";
+  if (!deviceOpen.value) return "未授权 · 请回首页连接";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步中…";
-  if (online.value) return "鼠标在线 · 同步配置";
-  return "等待鼠标上线";
+  if (connecting.value) return "同步中 · 请勿频繁点击";
+  if (online.value) return "鼠标在线 · 点同步设备";
+  return "接收器已授权 · 等待鼠标";
 });
 
 const statusDotClass = computed(() => {
@@ -91,14 +92,14 @@ function startAutoPoll() {
     }
     pollSeconds.value += 2;
 
-    if (connecting.value && Date.now() - connectingWatchStart > 28000) {
-      notify("同步超时，正在自动重新连接…");
-      await recoverStuckSession();
+    if (connecting.value && Date.now() - connectingWatchStart > 20000 && !syncWarned) {
+      syncWarned = true;
+      notify("同步时间较长：请晃动鼠标，再点一次「同步设备」");
       return;
     }
 
-    if (!connecting.value) {
-      await pollMouseOnline(3);
+    if (!connecting.value && deviceOpen.value) {
+      await pollMouseOnline(2, 5000);
     }
   }, 2000);
 }
@@ -150,6 +151,8 @@ async function onDisconnect() {
 async function onRefresh() {
   refreshing.value = true;
   pollSeconds.value = 0;
+  syncWarned = false;
+  connectingWatchStart = Date.now();
   try {
     const ok = await refresh();
     if (ok) {

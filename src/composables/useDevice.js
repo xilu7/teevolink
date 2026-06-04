@@ -151,16 +151,29 @@ export function useDevice() {
     if (!HID.deviceInfo.deviceOpen) return false;
     if (connected.value) return true;
 
-    if (connecting.value) {
-      const ok = await waitUntilReady(5000);
-      if (ok) return true;
-      return recoverStuckSession();
+    const dev = await getAuthorizedDevice();
+    if (!dev) return false;
+
+    try {
+      const isOn = await HID.Get_Current_Device_Online(dev);
+      if (!isOn) return false;
+    } catch (e) {
+      console.warn("ensureReady online check", e);
+      return false;
     }
 
-    await HID.Device_Connect();
-    if (await waitUntilReady(8000)) return true;
+    if (connecting.value) {
+      return await waitUntilReady(6000);
+    }
 
-    return pollMouseOnline(15);
+    try {
+      await HID.Device_Connect();
+    } catch (e) {
+      console.warn("ensureReady Device_Connect", e);
+    }
+    if (await waitUntilReady(6000)) return true;
+
+    return pollMouseOnline(5, 6000);
   }
 
   /**
@@ -213,9 +226,25 @@ export function useDevice() {
     if (!HID.deviceInfo.deviceOpen) return false;
     await init();
 
+    const dev = await getAuthorizedDevice();
+    if (dev) {
+      try {
+        await HID.Device_Reconnect(dev);
+      } catch (e) {
+        console.warn("refresh reconnect", e);
+      }
+    }
+
     if (connecting.value) {
-      const recovered = await recoverStuckSession();
-      return recovered;
+      try {
+        await HID.Device_Close();
+        await sleep(500);
+        if (dev) await HID.Device_Reconnect(dev);
+        await HID.Device_Connect();
+      } catch (e) {
+        console.warn("refresh connecting", e);
+      }
+      return await waitUntilReady(12000);
     }
 
     if (connected.value) {

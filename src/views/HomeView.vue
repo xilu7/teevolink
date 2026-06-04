@@ -24,7 +24,7 @@ const specs = [
 ];
 
 /** 改这个数字并 push 后，页脚能确认 Vercel 是否已更新 */
-const BUILD_TAG = "2026-06-04-b";
+const BUILD_TAG = "2026-06-04-c";
 
 const modules = [
   { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
