@@ -391,6 +391,33 @@ body {
   box-shadow: 0 0 20px var(--ac-shadow);
 }
 
+.driver-dock.dock-three {
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.driver-dock.dock-three .driver-dock-item {
+  min-width: 5.5rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.feedback-toast {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--rl);
+  background: var(--tx);
+  color: var(--bg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shm);
+  max-width: min(90vw, 360px);
+  text-align: center;
+}
+
 .home-page {
   min-height: 100vh;
   display: flex;

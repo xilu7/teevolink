@@ -11,18 +11,25 @@ const { isDark, toggleTheme } = useTheme();
 const busy = ref(false);
 const error = ref("");
 
-const features = [
-  { title: "DPI 设置", desc: "多档 DPI、XY 独立、指示灯颜色" },
-  { title: "改键", desc: "常规按键、组合键、宏绑定" },
-  { title: "性能", desc: "回报率、传感器模式、远距离" },
-  { title: "参数", desc: "LOD、去抖、移动同步与角度" },
-  { title: "鼠标设置", desc: "配置方案、RGB、休眠与恢复出厂" },
+const modules = [
+  {
+    title: "性能调校",
+    desc: "DPI 与回报率优先，进阶含 LOD、移动同步",
+  },
+  {
+    title: "按键",
+    desc: "改键一目了然，组合键与宏按需展开",
+  },
+  {
+    title: "配置与灯效",
+    desc: "多场景板载配置，灯效为可选视觉项",
+  },
 ];
 
 async function onConnect() {
   error.value = "";
   if (!navigator.hid) {
-    error.value = "当前浏览器不支持 Web HID，请使用 Chrome 89+ 或 Edge 89+。";
+    error.value = "请使用 Chrome 89+ 或 Edge 89+。";
     return;
   }
   busy.value = true;
@@ -30,12 +37,10 @@ async function onConnect() {
     const ok = await connect();
     if (ok) router.push("/device");
     else {
-      error.value =
-        "未找到设备：请插入 8K 接收器或 USB 线，在弹窗中选择 RapidSync，并换 USB 口重试。";
+      error.value = "未找到设备：请插入接收器或 USB，在弹窗选择 RapidSync。";
     }
   } catch (e) {
-    console.error(e);
-    error.value = e?.message || "连接失败，请重试。";
+    error.value = e?.message || "连接失败";
   } finally {
     busy.value = false;
   }
@@ -48,75 +53,97 @@ async function onConnect() {
       <div class="container driver-topbar-inner">
         <div class="driver-topbar-left">
           <span class="brand-mark">T</span>
-          <span class="driver-pill active">主页</span>
-          <span class="driver-pill profile" style="opacity: 0.65">连接后管理配置</span>
+          <span class="driver-pill active">TeevoLink</span>
         </div>
-        <div class="driver-topbar-right">
-          <button type="button" class="theme-btn" title="切换主题" @click="toggleTheme">
-            {{ isDark ? "☀" : "☾" }}
-          </button>
-        </div>
+        <button type="button" class="theme-btn" @click="toggleTheme">{{ isDark ? "☀" : "☾" }}</button>
       </div>
     </header>
 
-    <section class="home-hero home-wrap">
-      <div class="container home-hero-grid">
-        <div class="hero-card" style="margin-bottom: 0">
-          <p class="home-brand">TEEVOLUTION · TEEVOLINK</p>
-          <h1 class="home-title page-title">配置 {{ PRODUCT.name }}</h1>
-          <p class="home-lead">
-            浏览器端官方驱动，无需安装。参考专业外设驱动的信息架构，保留 Teevolution
-            品牌体验——DPI、改键、性能、参数与设备设置一应俱全。
-          </p>
+    <section class="home-wrap container">
+      <div class="hero-card">
+        <p class="home-brand">TEEVOLUTION</p>
+        <h1 class="page-title home-title">{{ PRODUCT.name }} 驱动</h1>
+        <p class="home-lead">
+          三个模块、循序渐进：先调好 DPI 与回报率即可上手，再按需改键与切换场景配置。
+        </p>
 
-          <div class="home-feature-grid">
-            <div v-for="f in features" :key="f.title" class="home-feature-card">
-              <strong>{{ f.title }}</strong>
-              {{ f.desc }}
-            </div>
+        <div class="module-cards">
+          <div v-for="m in modules" :key="m.title" class="module-card">
+            <strong>{{ m.title }}</strong>
+            <span>{{ m.desc }}</span>
           </div>
-
-          <p class="dongle-hint">
-            无线请插入 <strong>8K 接收器</strong>（可能显示为 RapidSync）。在弹窗中选中设备后点击「连接设备」。
-          </p>
-
-          <button
-            type="button"
-            class="btn btn-primary home-connect-btn"
-            :disabled="busy"
-            @click="onConnect"
-          >
-            {{ busy ? "正在连接…" : "连接设备" }}
-          </button>
-          <p v-if="error" class="home-error">{{ error }}</p>
-
-          <section class="home-steps">
-            <h2 class="page-title" style="font-size: 1rem">使用步骤</h2>
-            <ol>
-              <li>USB 连接鼠标，或插入 2.4GHz 接收器。</li>
-              <li>允许浏览器访问 HID 设备。</li>
-              <li>使用底部导航切换 DPI、改键、性能等功能模块。</li>
-              <li>设置自动保存至鼠标板载存储。</li>
-            </ol>
-            <p class="home-note">需 Chrome 89+ 或 Edge 89+。</p>
-          </section>
         </div>
 
-        <div class="home-viz-card">
-          <img src="/device-mouse.svg" :alt="PRODUCT.name" />
-          <p class="driver-device-name">{{ PRODUCT.name }}</p>
-          <p class="driver-device-sub">{{ PRODUCT.brand }} · PAW3950</p>
-        </div>
+        <p class="dongle-hint">
+          无线请插入 8K 接收器（RapidSync），USB 有线亦可。连接后即可在网页调参，无需安装。
+        </p>
+
+        <button type="button" class="btn btn-primary home-connect-btn" :disabled="busy" @click="onConnect">
+          {{ busy ? "正在连接…" : "连接设备" }}
+        </button>
+        <p v-if="error" class="home-error">{{ error }}</p>
       </div>
     </section>
   </div>
 </template>
 
 <style scoped>
-.dongle-hint {
-  font-size: 0.9rem;
+.home-wrap {
+  padding: 2rem 0 4rem;
+}
+.home-title {
+  margin: 0.35rem 0 0.75rem;
+}
+.home-lead {
   color: var(--tx2);
+  line-height: 1.6;
   margin-bottom: 1.25rem;
-  line-height: 1.55;
+  max-width: 520px;
+}
+.home-brand {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--acd);
+}
+.module-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 700px) {
+  .module-cards {
+    grid-template-columns: 1fr;
+  }
+}
+.module-card {
+  padding: 0.85rem;
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  background: var(--bg2);
+  font-size: 0.8rem;
+  color: var(--tx2);
+  line-height: 1.45;
+}
+.module-card strong {
+  display: block;
+  color: var(--tx);
+  font-size: 0.88rem;
+  margin-bottom: 0.25rem;
+}
+.dongle-hint {
+  font-size: 0.88rem;
+  color: var(--tx2);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+.home-connect-btn {
+  padding: 0.8rem 1.75rem;
+}
+.home-error {
+  color: var(--rdx);
+  font-size: 0.88rem;
+  margin-top: 0.65rem;
 }
 </style>

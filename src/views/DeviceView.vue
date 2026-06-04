@@ -3,29 +3,27 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { useTheme } from "@/composables/useTheme.js";
-import DpiPanel from "@/components/DpiPanel.vue";
-import KeyMappingPanel from "@/components/KeyMappingPanel.vue";
-import PerformancePanel from "@/components/PerformancePanel.vue";
-import ParametersPanel from "@/components/ParametersPanel.vue";
-import MouseSettingsPanel from "@/components/MouseSettingsPanel.vue";
+import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
+import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
+import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
+import DeviceTab from "@/components/tabs/DeviceTab.vue";
 
 const router = useRouter();
 const { HID, connected, online, battery, isWired, deviceInfo, mouseCfg, disconnect, refresh, PRODUCT } =
   useDevice();
 const { isDark, toggleTheme } = useTheme();
+const { feedback, notify } = useSettingFeedback();
 
-const tab = ref("dpi");
+const tab = ref("performance");
 const refreshing = ref(false);
 
 const tabs = [
-  { id: "dpi", label: "DPI 设置" },
-  { id: "keys", label: "改键" },
-  { id: "performance", label: "性能" },
-  { id: "params", label: "参数" },
-  { id: "settings", label: "鼠标设置" },
+  { id: "performance", label: "性能调校", hint: "DPI · 回报率" },
+  { id: "buttons", label: "按键", hint: "改键 · 宏" },
+  { id: "device", label: "配置与灯效", hint: "场景 · 灯光" },
 ];
 
-const profileLabel = computed(() => `配置 ${(deviceInfo.profile ?? 0) + 1}`);
+const profileLabel = computed(() => (deviceInfo.profile ?? 0) + 1);
 
 const connectionText = computed(() => {
   if (!connected.value) return "未连接";
@@ -33,19 +31,21 @@ const connectionText = computed(() => {
   return isWired.value ? "有线" : "无线";
 });
 
-const batteryText = computed(() => {
-  if (battery.value?.level == null) return "—";
-  const pct = battery.value.level;
-  const chg = battery.value.charging ? " · 充电中" : "";
-  return `${pct}%${chg}`;
-});
-
-const currentDpiValue = computed(() => {
+const statusLine = computed(() => {
   const i = Math.max(0, (mouseCfg.value.currentDpi || 1) - 1);
-  return mouseCfg.value.dpis?.[i]?.value ?? "—";
+  const dpi = mouseCfg.value.dpis?.[i]?.value ?? "—";
+  const bat =
+    battery.value?.level != null ? `${battery.value.level}%` : "";
+  const parts = [
+    PRODUCT.name,
+    connectionText.value,
+    bat,
+    `${dpi} DPI`,
+    `${mouseCfg.value.reportRate} Hz`,
+    `配置${profileLabel.value}`,
+  ].filter(Boolean);
+  return parts.join(" · ");
 });
-
-const showCompactHero = computed(() => tab.value !== "keys");
 
 onMounted(async () => {
   if (!HID.deviceInfo.deviceOpen) {
@@ -66,6 +66,7 @@ async function onRefresh() {
   refreshing.value = true;
   try {
     await refresh();
+    notify("已从设备同步最新设置");
   } finally {
     refreshing.value = false;
   }
@@ -79,85 +80,45 @@ async function onRefresh() {
         <div class="driver-topbar-left">
           <span class="brand-mark">T</span>
           <button type="button" class="driver-pill" @click="goHome">主页</button>
-          <button type="button" class="driver-pill profile active" disabled>
-            我的配置：{{ profileLabel }}
-          </button>
         </div>
         <div class="driver-topbar-right">
           <span class="sync">
-            <span
-              class="sd"
-              :class="connected && online ? '' : connected ? 'w' : 'e'"
-            />
+            <span class="sd" :class="connected && online ? '' : connected ? 'w' : 'e'" />
             {{ connectionText }}
-            <span v-if="battery?.level != null"> · {{ batteryText }}</span>
           </span>
-          <span class="driver-divider-v" />
-          <button type="button" class="theme-btn" title="切换主题" @click="toggleTheme">
+          <button type="button" class="theme-btn" title="主题" @click="toggleTheme">
             {{ isDark ? "☀" : "☾" }}
           </button>
-          <button type="button" class="theme-btn" title="断开连接" @click="onDisconnect">
-            ⏻
-          </button>
+          <button type="button" class="theme-btn" title="断开" @click="onDisconnect">⏻</button>
         </div>
       </div>
     </header>
 
-    <section v-if="showCompactHero" class="driver-hero">
-      <div class="container driver-hero-grid">
-        <div class="driver-status-cards">
-          <div class="driver-stat">
-            <div class="driver-stat-label">连接</div>
-            <div class="driver-stat-value">{{ connectionText }}</div>
-          </div>
-          <div class="driver-stat">
-            <div class="driver-stat-label">电量</div>
-            <div class="driver-stat-value accent">{{ batteryText }}</div>
-          </div>
-        </div>
-        <div class="driver-device-viz">
-          <img src="/device-mouse.svg" :alt="PRODUCT.name" width="180" height="234" />
-          <div class="driver-device-name">{{ PRODUCT.name }}</div>
-          <div class="driver-device-sub">{{ PRODUCT.brand }}</div>
-        </div>
-        <div class="driver-status-cards">
-          <div class="driver-stat">
-            <div class="driver-stat-label">DPI</div>
-            <div class="driver-stat-value accent">
-              第 {{ mouseCfg.currentDpi }} 档 · {{ currentDpiValue }}
-            </div>
-          </div>
-          <div class="driver-stat">
-            <div class="driver-stat-label">回报率</div>
-            <div class="driver-stat-value">{{ mouseCfg.reportRate }} Hz</div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <div class="container status-strip">
+      <p class="status-line">{{ statusLine }}</p>
+      <button
+        type="button"
+        class="btn btn-secondary btn-sm"
+        :disabled="refreshing"
+        @click="onRefresh"
+      >
+        {{ refreshing ? "同步中…" : "同步设备" }}
+      </button>
+    </div>
 
     <main class="container driver-main">
-      <div class="driver-toolbar">
-        <h2 class="page-title">{{ tabs.find((t) => t.id === tab)?.label }}</h2>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          :disabled="refreshing"
-          @click="onRefresh"
-        >
-          {{ refreshing ? "同步中…" : "从设备刷新" }}
-        </button>
-      </div>
+      <p class="tab-intro">
+        {{ tabs.find((t) => t.id === tab)?.hint }}
+      </p>
 
       <div class="driver-panel-wrap">
-        <DpiPanel v-if="tab === 'dpi'" />
-        <KeyMappingPanel v-else-if="tab === 'keys'" />
-        <PerformancePanel v-else-if="tab === 'performance'" />
-        <ParametersPanel v-else-if="tab === 'params'" />
-        <MouseSettingsPanel v-else-if="tab === 'settings'" />
+        <PerformanceTab v-if="tab === 'performance'" />
+        <ButtonsTab v-else-if="tab === 'buttons'" />
+        <DeviceTab v-else-if="tab === 'device'" />
       </div>
     </main>
 
-    <nav class="driver-dock" aria-label="功能导航">
+    <nav class="driver-dock dock-three" aria-label="主功能">
       <button
         v-for="t in tabs"
         :key="t.id"
@@ -166,8 +127,61 @@ async function onRefresh() {
         :class="{ active: tab === t.id }"
         @click="tab = t.id"
       >
-        {{ t.label }}
+        <span class="dock-label">{{ t.label }}</span>
+        <span class="dock-hint">{{ t.hint }}</span>
       </button>
     </nav>
+
+    <Transition name="toast">
+      <div v-if="feedback" class="feedback-toast" role="status">{{ feedback }}</div>
+    </Transition>
   </div>
 </template>
+
+<style scoped>
+.status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0 0.25rem;
+}
+.status-line {
+  font-size: 0.8rem;
+  color: var(--tx2);
+  flex: 1;
+  min-width: 200px;
+}
+.btn-sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+}
+.tab-intro {
+  font-size: 0.85rem;
+  color: var(--tx3);
+  margin-bottom: 0.85rem;
+}
+.dock-hint {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-top: 0.1rem;
+}
+.dock-label {
+  font-size: 0.78rem;
+}
+.driver-dock-item.active .dock-hint {
+  opacity: 0.95;
+}
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+</style>
