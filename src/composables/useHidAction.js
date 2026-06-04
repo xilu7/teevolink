@@ -13,7 +13,7 @@ export function useHidAction() {
     if (!ready) {
       notify(
         failMsg ||
-          "鼠标未上线：请晃动鼠标或按侧键唤醒，再点「同步设备」"
+          "鼠标未上线：先晃动唤醒 → 点「同步设备」→ 右上角显示「已连接」后再改"
       );
       return false;
     }
