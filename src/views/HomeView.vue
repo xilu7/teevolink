@@ -24,7 +24,7 @@ const specs = [
 ];
 
 /** 改这个数字并 push 后，页脚能确认 Vercel 是否已更新 */
-const BUILD_TAG = "2026-06-04-c";
+const BUILD_TAG = "2026-06-04-d";
 
 const modules = [
   { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
@@ -67,6 +67,10 @@ async function onConnect() {
     }
 
     success.value = result.message;
+    if (result.ready) {
+      router.push("/device");
+      return;
+    }
     router.push("/device");
   } catch (e) {
     error.value = e?.message || "连接异常，请重试";

@@ -25,8 +25,9 @@ const {
   disconnect,
   refresh,
   bootDevicePage,
-  pollMouseOnline,
-  recoverStuckSession,
+  waitForMouseReady,
+  checkMouseOnline,
+  startHidSession,
   enterPairMode,
   openAuthorizedSession,
   PRODUCT,
@@ -99,7 +100,8 @@ function startAutoPoll() {
     }
 
     if (!connecting.value && deviceOpen.value) {
-      await pollMouseOnline(2, 5000);
+      const on = await checkMouseOnline();
+      if (on) await waitForMouseReady(3);
     }
   }, 2000);
 }
@@ -217,6 +219,14 @@ async function onPair() {
           <span v-if="pollSeconds"> · 已等待 {{ pollSeconds }} 秒（自动检测中）</span>
         </p>
         <div class="banner-actions">
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="refreshing"
+            @click="onRefresh"
+          >
+            {{ refreshing ? "正在连接…" : "立即连接鼠标" }}
+          </button>
           <button type="button" class="btn btn-secondary" @click="onPair">进入对码</button>
         </div>
       </div>

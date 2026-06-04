@@ -3414,7 +3414,7 @@ function Get_Flash_Time_Tick() {
   if (getFlashTimerTickCount >= 30) {
     console.error("Get_Flash_Time_Tick");
     if (deviceInfo.connectState == DeviceConectState.Connecting) {
-      deviceInfo.connectState == DeviceConectState.TimeOut;
+      deviceInfo.connectState = DeviceConectState.TimeOut;
       Device_Close();
     }
   }
