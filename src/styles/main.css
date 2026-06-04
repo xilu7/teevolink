@@ -1,4 +1,5 @@
 @import "./teevo-design-system.css";
+@import "./driver-theme.css";
 
 :root {
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -28,7 +29,7 @@ button {
 }
 
 .container {
-  width: min(1100px, 100% - 2rem);
+  width: min(1280px, 100% - 2rem);
   margin: 0 auto;
 }
 

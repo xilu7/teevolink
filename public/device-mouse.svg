@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 420" fill="none">
+  <defs>
+    <linearGradient id="body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5f5f5"/>
+      <stop offset="100%" stop-color="#e8e8e8"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#78BE1F" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#78BE1F" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-10%" width="140%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <ellipse cx="160" cy="380" rx="90" ry="16" fill="#000" opacity="0.08"/>
+  <g filter="url(#shadow)">
+    <path d="M160 40 C95 40 55 95 55 175 C55 255 75 310 95 355 L115 395 C125 410 145 415 160 415 C175 415 195 410 205 395 L225 355 C245 310 265 255 265 175 C265 95 225 40 160 40Z" fill="url(#body)" stroke="#d0d0d0" stroke-width="2"/>
+    <ellipse cx="160" cy="120" rx="28" ry="42" fill="#fff" stroke="#78BE1F" stroke-width="2"/>
+    <rect x="148" y="165" width="24" height="55" rx="6" fill="#eee" stroke="#ccc"/>
+  </g>
+  <ellipse cx="160" cy="95" rx="70" ry="50" fill="url(#glow)"/>
+</svg>
