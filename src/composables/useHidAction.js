@@ -18,17 +18,21 @@ export function useHidAction() {
     if (!ready) {
       notify(
         failMsg ||
-          "还不能写入鼠标：① 底部开关拨到 2.4G ② 打开电源并晃动 ③ 点「同步设备」直到右上角「已连接」"
+          "还不能写入鼠标：请保持 2.4G 或 USB 有线，并晃动鼠标直到右上角显示「已连接」"
       );
       return false;
     }
     try {
-      await action();
+      const result = await action();
+      if (result === false) {
+        notify(failMsg || "写入失败，请晃动鼠标后重试");
+        return false;
+      }
       if (successMsg) notify(successMsg);
       return true;
     } catch (e) {
       console.error(e);
-      notify(e?.message || "操作失败，请点「同步设备」后重试");
+      notify(e?.message || "操作失败，请稍后重试");
       return false;
     }
   }

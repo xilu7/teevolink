@@ -57,7 +57,7 @@ const connectionText = computed(() => {
   if (!deviceOpen.value) return "未授权 · 请回首页连接";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
   if (connecting.value) return "同步中 · 请勿频繁点击";
-  if (online.value) return "鼠标在线 · 点同步设备";
+  if (online.value) return "鼠标在线 · 自动同步中";
   return "接收器已授权 · 等待鼠标";
 });
 
@@ -104,9 +104,15 @@ function startAutoPoll() {
       return;
     }
 
-    if (!connecting.value && deviceOpen.value) {
-      const on = await checkMouseOnline();
-      if (on) await waitForMouseReady(3);
+    if (!isReady.value && deviceOpen.value && !refreshing.value) {
+      if (!connecting.value) {
+        refreshing.value = true;
+        try {
+          await syncDevice(12);
+        } finally {
+          refreshing.value = false;
+        }
+      }
     }
   }, 2000);
 }
@@ -144,10 +150,6 @@ onMounted(async () => {
 });
 
 onUnmounted(() => stopAutoPoll());
-
-function goHome() {
-  router.push("/");
-}
 
 async function onDisconnect() {
   stopAutoPoll();
@@ -210,7 +212,7 @@ async function onPair() {
 
 <template>
   <div class="driver-page driver-shell">
-    <AppTopbar logo-size="sm" show-home @home="goHome">
+    <AppTopbar logo-size="sm">
       <template #status>
         <span class="sync-pill">
           <span class="sd" :class="statusDotClass" />
@@ -223,15 +225,10 @@ async function onPair() {
     </AppTopbar>
 
     <div class="container status-strip">
-      <p class="status-line">{{ booting ? "正在连接鼠标…" : statusLine }}</p>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm"
-        :disabled="refreshing || booting"
-        @click="onRefresh"
-      >
-        {{ refreshing ? "同步中…" : "同步设备" }}
-      </button>
+      <p class="status-line">
+        {{ booting ? "正在连接鼠标…" : refreshing ? "正在自动同步…" : statusLine }}
+      </p>
+      <span v-if="refreshing && !booting" class="sync-spinner" aria-hidden="true" />
     </div>
 
     <div v-if="!booting && !isReady" class="container">
@@ -243,9 +240,9 @@ async function onPair() {
             <strong>三模说明：</strong>Terra Pro 支持蓝牙 / 2.4G / USB 有线。网页调参请把底部开关拨到
             <strong>2.4G</strong> 并插 RapidSync 接收器，或用 <strong>USB 线直连</strong>；蓝牙模式下浏览器通常无法写入参数。
           </li>
-          <li><strong>无线 2.4G：</strong>打开电源 → 晃动或按左/右/中/DPI 键唤醒 → 等 5～10 秒 → 点「同步设备」。</li>
+          <li><strong>无线 2.4G：</strong>打开电源 → 晃动或按左/右/中/DPI 键唤醒 → 等 5～10 秒，页面会自动同步。</li>
           <li><strong>仍无效：</strong>靠近橙色接收器；接收器屏若显示断连图标，可点「进入对码」后按接收器顶部键与鼠标底部小键配对。</li>
-          <li><strong>有线：</strong>数据线连电脑后同样点「同步设备」，一般比 2.4G 更容易显示「已连接 · 有线」。</li>
+          <li><strong>有线：</strong>数据线连电脑后一般会自动显示「已连接 · 有线」。</li>
         </ol>
         <p class="diag">
           检测：{{ dongleTypeLabel }} · 在线信号 {{ online ? "有" : "无" }} · SDK状态
@@ -329,9 +326,23 @@ async function onPair() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
   padding: 0.65rem 0 0.25rem;
+}
+.sync-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bd);
+  border-top-color: var(--ac);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .status-line {
   font-size: 0.8rem;

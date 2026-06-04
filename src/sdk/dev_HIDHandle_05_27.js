@@ -3096,6 +3096,7 @@ async function Set_Device_Eeprom_Array(address, value) {
       flashData[i + address] = value[i];
     }
   }
+  return result;
 }
 
 //设置eeprom内容（长度==1）
@@ -3111,7 +3112,9 @@ async function Set_Device_Eeprom_Value(address, value) {
   if (await Send_HID_Buffer(data)) {
     flashData[address] = value;
     flashData[address + 1] = data[6];
+    return true;
   }
+  return false;
 }
 
 //获取eeprom数据
@@ -3803,8 +3806,8 @@ async function Set_MS_CurrentDPI(value) {
   var flag = await Get_Device_Online_With_Dialog();
 
   if (flag == true) {
-    await Set_Device_Eeprom_Value(MouseEepromAddr.CurrentDPI, value);
-    deviceInfo.mouseCfg.currentDpi = value;
+    flag = await Set_Device_Eeprom_Value(MouseEepromAddr.CurrentDPI, value);
+    if (flag) deviceInfo.mouseCfg.currentDpi = value;
   }
 
   return flag;
@@ -3947,8 +3950,8 @@ async function Set_MS_DPIValue(index, value) {
 
       data[5] = get_Crc(data);
       console.log("Set_MS_DPIValue:", value, temp);
-      await Set_Device_Eeprom_Array(addr, data);
-      deviceInfo.mouseCfg.dpis[index].value = value;
+      flag = await Set_Device_Eeprom_Array(addr, data);
+      if (flag) deviceInfo.mouseCfg.dpis[index].value = value;
     } else {
       var addr = MouseEepromAddr.DPIValue + index * 4;
       var data = Uint8Array.of(0x00, 0x00, 0x00, 0x00);
@@ -3963,9 +3966,10 @@ async function Set_MS_DPIValue(index, value) {
 
       data[3] = get_Crc(data);
       console.log("Set_MS_DPIValue:", value, temp);
-      await Set_Device_Eeprom_Array(addr, data);
-
-      deviceInfo.mouseCfg.dpis[index].x = deviceInfo.mouseCfg.dpis[index].y = deviceInfo.mouseCfg.dpis[index].value = value;
+      flag = await Set_Device_Eeprom_Array(addr, data);
+      if (flag) {
+        deviceInfo.mouseCfg.dpis[index].x = deviceInfo.mouseCfg.dpis[index].y = deviceInfo.mouseCfg.dpis[index].value = value;
+      }
     }
   }
 

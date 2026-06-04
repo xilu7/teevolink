@@ -1,15 +1,13 @@
 <script setup>
 import BrandLogo from "@/components/brand/BrandLogo.vue";
-import UiScaleControl from "@/components/layout/UiScaleControl.vue";
 import { useTheme } from "@/composables/useTheme.js";
 
 defineProps({
   logoSize: { type: String, default: "md" },
-  showHome: { type: Boolean, default: false },
   showConnect: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["home", "connect"]);
+const emit = defineEmits(["connect"]);
 const { isDark, toggleTheme } = useTheme();
 </script>
 
@@ -21,13 +19,9 @@ const { isDark, toggleTheme } = useTheme();
         <nav v-if="$slots.nav" class="topbar-nav">
           <slot name="nav" />
         </nav>
-        <button v-if="showHome" type="button" class="topbar-link" @click="emit('home')">
-          主页
-        </button>
       </div>
       <div class="app-topbar-end">
         <slot name="meta" />
-        <UiScaleControl />
         <slot name="status" />
         <button
           v-if="showConnect"

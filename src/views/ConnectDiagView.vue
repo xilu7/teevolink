@@ -127,7 +127,7 @@ async function runFactoryDiag() {
 
 <template>
   <div class="driver-shell diag-page">
-    <AppTopbar logo-size="sm" show-home @home="router.push('/')" />
+    <AppTopbar logo-size="sm" />
     <main class="container">
       <h1>连接诊断（工厂 SDK 逐步执行）</h1>
       <p class="lead">
