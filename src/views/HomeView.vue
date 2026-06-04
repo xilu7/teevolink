@@ -5,6 +5,7 @@ import { useDevice } from "@/composables/useDevice.js";
 import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
+import HomeWelcome from "@/components/home/HomeWelcome.vue";
 import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
 
 const router = useRouter();
@@ -110,11 +111,10 @@ function openSettings() {
         @refresh="runConnect"
       />
 
-      <HomeConnectGuide v-if="!deviceOpen" />
-
-      <p v-if="!deviceOpen" class="home-browser-hint">
-        请使用 Chrome 或 Edge 打开 · 需 HTTPS 官方链接
-      </p>
+      <template v-if="!deviceOpen">
+        <HomeWelcome />
+        <HomeConnectGuide />
+      </template>
 
       <p v-if="success" class="feedback success">{{ success }}</p>
       <p v-if="error" class="feedback error">

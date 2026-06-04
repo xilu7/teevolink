@@ -17,8 +17,8 @@ export const FACTORY_AUTO_RECONNECT = [
   "Device_Connect()",
 ];
 
-export const HOME_GUIDE_LEAD =
-  "按工厂 Web HID 流程操作，首次需授权；下次打开会自动连接，无需再点弹窗。";
+/** @deprecated 使用 home-content.js 的 HOME_GUIDE_INTRO */
+export const HOME_GUIDE_LEAD = "";
 
 export const HOME_CONNECT_STEPS = [
   {

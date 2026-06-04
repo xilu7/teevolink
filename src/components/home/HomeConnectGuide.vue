@@ -1,16 +1,13 @@
 <script setup>
-import {
-  HOME_CONNECT_STEPS,
-  HOME_GUIDE_LEAD,
-} from "@/config/factory-hid-flow.js";
-import GuidePointer from "@/components/home/GuidePointer.vue";
+import { HOME_CONNECT_STEPS } from "@/config/factory-hid-flow.js";
+import { HOME_GUIDE_INTRO } from "@/config/home-content.js";
 </script>
 
 <template>
   <section class="home-guide-premium" aria-label="连接引导">
     <header class="guide-head">
       <h2 class="guide-title">连接引导</h2>
-      <p class="guide-lead">{{ HOME_GUIDE_LEAD }}</p>
+      <p class="guide-lead">{{ HOME_GUIDE_INTRO }}</p>
     </header>
 
     <ol class="guide-grid">
@@ -22,12 +19,7 @@ import GuidePointer from "@/components/home/GuidePointer.vue";
             <p>{{ s.desc }}</p>
           </div>
         </div>
-        <div
-          class="guide-visual"
-          :class="`visual-${s.step}`"
-          aria-hidden="true"
-        >
-          <GuidePointer />
+        <div class="guide-visual" aria-hidden="true">
           <div v-if="s.step === 1" class="mock-topbar-row">
             <span class="mock-icon">☾</span>
             <span class="mock-icon accent">+</span>

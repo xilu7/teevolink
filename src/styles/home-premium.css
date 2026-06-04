@@ -167,15 +167,7 @@
   border-color: color-mix(in srgb, var(--gn) 88%, #000);
 }
 
-.home-browser-hint {
-  margin: 0;
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--tx3);
-}
-
-/* —— 连接引导（图二） —— */
+/* —— 欢迎区 + 连接引导 —— */
 
 .home-guide-premium {
   padding: 1.1rem 1.15rem 1.15rem;
@@ -281,37 +273,6 @@
   justify-content: center;
   padding: 0.5rem 0.55rem;
   overflow: hidden;
-}
-
-.home-guide-premium .guide-visual :deep(.guide-pointer) {
-  position: absolute;
-  z-index: 2;
-  width: 24px;
-  height: 24px;
-}
-
-.home-guide-premium .visual-1 :deep(.guide-pointer) {
-  top: 4px;
-  right: 14%;
-  transform: rotate(8deg);
-}
-
-.home-guide-premium .visual-2 :deep(.guide-pointer) {
-  bottom: 6px;
-  left: 36%;
-  transform: rotate(-16deg) scaleX(-1);
-}
-
-.home-guide-premium .visual-3 :deep(.guide-pointer) {
-  bottom: 10px;
-  right: 18%;
-  transform: rotate(6deg);
-}
-
-.home-guide-premium .visual-4 :deep(.guide-pointer) {
-  top: 6px;
-  right: 24%;
-  transform: rotate(10deg);
 }
 
 .topbar-icon-btn.is-active {
