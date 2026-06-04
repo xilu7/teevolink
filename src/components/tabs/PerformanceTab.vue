@@ -67,18 +67,24 @@ const stageDpisFromDevice = computed(() =>
 );
 
 const stageEdits = ref([...PRODUCT.defaultDpiPresets]);
+
+/** 当前档正在编辑时的统一数值：滑条与顶部大数字以此为准 */
+const fineDraft = ref(null);
+
+const heroDpi = computed(() =>
+  fineDraft.value != null ? fineDraft.value : activeDpi.value
+);
+
 watch(
   stageDpisFromDevice,
   (vals) => {
-    stageEdits.value = vals.map((v) => v);
+    const cur = currentStageIndex.value;
+    stageEdits.value = vals.map((v, i) => {
+      if (i === cur && fineDraft.value != null) return fineDraft.value;
+      return v;
+    });
   },
   { immediate: true }
-);
-
-/** 滑条预览值，点保存后才写入当前档 */
-const fineDraft = ref(null);
-const heroDpi = computed(() =>
-  fineDraft.value != null ? fineDraft.value : activeDpi.value
 );
 
 watch(
@@ -87,6 +93,13 @@ watch(
     fineDraft.value = null;
   }
 );
+
+function dpiForSave(index) {
+  if (index === currentStageIndex.value) {
+    return clampDpi(fineDraft.value ?? stageEdits.value[index] ?? activeDpi.value);
+  }
+  return clampDpi(stageEdits.value[index]);
+}
 
 function clampDpi(dpi) {
   const n = Number(dpi);
@@ -141,8 +154,9 @@ async function selectStage(index) {
 }
 
 async function saveStageSlot(index) {
-  const dpi = clampDpi(stageEdits.value[index]);
+  const dpi = dpiForSave(index);
   stageEdits.value[index] = dpi;
+  if (index === currentStageIndex.value) fineDraft.value = dpi;
   const applyStage = stageIsActive(index);
   await run(
     async () => {
@@ -160,8 +174,9 @@ async function saveStageSlot(index) {
 
 async function saveFineToCurrentStage() {
   const idx = currentStageIndex.value;
-  const dpi = clampDpi(fineDraft.value ?? activeDpi.value);
+  const dpi = dpiForSave(idx);
   fineDraft.value = dpi;
+  stageEdits.value[idx] = dpi;
   await run(
     async () => {
       const r = await writeMouseDpi(idx, dpi);
@@ -174,8 +189,13 @@ async function saveFineToCurrentStage() {
   );
 }
 
-function onStageInput(index) {
-  stageEdits.value[index] = clampDpi(stageEdits.value[index]);
+/** 改当前档数字时同步滑条/大数字；非当前档只改本档输入框 */
+function onStageInput(index, raw) {
+  const dpi = clampDpi(raw);
+  stageEdits.value[index] = dpi;
+  if (stageIsActive(index)) {
+    fineDraft.value = dpi;
+  }
 }
 
 function onSliderInput(v) {
@@ -311,9 +331,9 @@ async function setAngle(on) {
             :min="DPI_MIN"
             :max="DPI_MAX"
             :step="DPI_STEP"
-            v-model.number="stageEdits[row.index]"
+            :value="stageIsActive(row.index) ? heroDpi : stageEdits[row.index]"
             @click.stop
-            @change="onStageInput(row.index)"
+            @input="onStageInput(row.index, $event.target.value)"
           />
           <button
             type="button"
