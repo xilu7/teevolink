@@ -1,5 +1,7 @@
 <script setup>
 import BrandLogo from "@/components/brand/BrandLogo.vue";
+import IconMoon from "@/components/icons/IconMoon.vue";
+import IconSun from "@/components/icons/IconSun.vue";
 import { useTheme } from "@/composables/useTheme.js";
 
 defineProps({
@@ -34,11 +36,14 @@ const { isDark, toggleTheme } = useTheme();
         </button>
         <button
           type="button"
-          class="topbar-icon"
-          :title="isDark ? '浅色模式' : '深色模式'"
+          class="topbar-icon-btn"
+          :class="{ 'is-dark': isDark }"
+          :title="isDark ? '切换为浅色' : '切换为深色'"
+          :aria-label="isDark ? '切换为浅色' : '切换为深色'"
           @click="toggleTheme"
         >
-          {{ isDark ? "☀" : "☾" }}
+          <IconSun v-if="isDark" />
+          <IconMoon v-else />
         </button>
         <slot name="actions" />
       </div>
@@ -120,21 +125,33 @@ const { isDark, toggleTheme } = useTheme();
   border-color: var(--tx);
   transform: scale(1.04);
 }
-.topbar-icon {
+.topbar-icon-btn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--bd);
   background: var(--bg2);
   color: var(--tx2);
-  font-size: 0.95rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.topbar-icon:hover {
+.topbar-icon-btn:hover {
   border-color: var(--bd2);
   color: var(--tx);
+  background: var(--bg);
+}
+.topbar-icon-btn.is-dark {
+  color: #e8a317;
+}
+.app-topbar-end :deep(.topbar-icon-btn.danger) {
+  color: var(--tx2);
+}
+.app-topbar-end :deep(.topbar-icon-btn.danger:hover) {
+  color: #c62828;
+  border-color: color-mix(in srgb, #c62828 35%, var(--bd));
+  background: color-mix(in srgb, #c62828 8%, var(--bg2));
 }
 </style>

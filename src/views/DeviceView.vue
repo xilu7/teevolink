@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed, provide, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, provide, onMounted, onUnmounted, watch, KeepAlive } from "vue";
+import IconDisconnect from "@/components/icons/IconDisconnect.vue";
+import { uiDiagLog } from "@/composables/useUiDiag.js";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
@@ -102,29 +104,43 @@ const deviceStatusDetail = computed(() => {
   };
 });
 
+/** 已连接后后台轮询不再触发侧栏「同步中」，减少闪烁 */
+const sidePanelLoading = computed(
+  () => booting.value || (refreshing.value && !isReady.value)
+);
+
 provide("deviceStatus", {
   detail: deviceStatusDetail,
   booting,
-  refreshing,
+  refreshing: sidePanelLoading,
 });
 
 let bannerDebounceTimer;
-watch(isReady, (ready) => {
+watch(isReady, (ready, prev) => {
+  uiDiagLog("device", "isReady", { ready, prev, connecting: connecting.value, booting: booting.value });
   if (ready) {
     wasReadyOnce.value = true;
     showConnectBanner.value = false;
     clearTimeout(bannerDebounceTimer);
     return;
   }
+  if (wasReadyOnce.value) {
+    showConnectBanner.value = false;
+    return;
+  }
   clearTimeout(bannerDebounceTimer);
   bannerDebounceTimer = setTimeout(() => {
     if (!isReady.value && !booting.value) showConnectBanner.value = true;
-  }, 2800);
+  }, 3200);
 });
 
 watch(connecting, (v) => {
   if (v) connectingWatchStart = Date.now();
+  uiDiagLog("device", "connecting", v);
 });
+
+watch(showConnectBanner, (v) => uiDiagLog("device", "banner", v));
+watch(booting, (v) => uiDiagLog("device", "booting", v));
 
 function startAutoPoll() {
   stopAutoPoll();
@@ -256,7 +272,7 @@ async function onPair() {
   <div class="driver-page driver-shell">
     <AppTopbar logo-size="sm">
       <template #meta>
-        <span class="driver-ver">2026-06-04-w</span>
+        <span class="driver-ver">2026-06-04-x</span>
       </template>
       <template #status>
         <span class="sync-pill">
@@ -265,11 +281,19 @@ async function onPair() {
         </span>
       </template>
       <template #actions>
-        <button type="button" class="topbar-icon" title="断开连接" @click="onDisconnect">⏻</button>
+        <button
+          type="button"
+          class="topbar-icon-btn danger"
+          title="断开连接并返回首页"
+          aria-label="断开连接"
+          @click="onDisconnect"
+        >
+          <IconDisconnect />
+        </button>
       </template>
     </AppTopbar>
 
-    <div v-if="showConnectBanner && !booting" class="container">
+    <div v-show="showConnectBanner && !booting && !wasReadyOnce" class="container connect-banner-wrap">
       <div class="connect-banner">
         <strong>接收器已连接，鼠标尚未上线</strong>
         <p>网页只能改<strong>已经唤醒并连上接收器</strong>的鼠标。仅插接收器、鼠标休眠时，界面是预览，改了也不会生效。</p>
@@ -316,9 +340,11 @@ async function onPair() {
     <main class="container driver-main">
       <p class="tab-intro-compact">{{ tabs.find((t) => t.id === tab)?.hint }}</p>
       <div class="driver-panel-wrap">
-        <PerformanceTab v-if="tab === 'performance'" />
-        <ButtonsTab v-else-if="tab === 'buttons'" />
-        <DeviceTab v-else-if="tab === 'device'" />
+        <KeepAlive>
+          <PerformanceTab v-if="tab === 'performance'" />
+          <ButtonsTab v-else-if="tab === 'buttons'" />
+          <DeviceTab v-else-if="tab === 'device'" />
+        </KeepAlive>
       </div>
     </main>
 
