@@ -1,0 +1,366 @@
+/* 首页 — 参考高端驱动控制台（紧凑、横排引导） */
+
+.home-page .home-main {
+  padding: 0.85rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 1120px;
+}
+
+.home-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.95fr) minmax(0, 1.25fr);
+  gap: 0;
+  border-radius: 16px;
+  border: 1px solid var(--bd);
+  background: color-mix(in srgb, var(--bg2) 55%, var(--bg));
+  overflow: hidden;
+  align-items: stretch;
+}
+
+@media (max-width: 760px) {
+  .home-hero-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-hero-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  min-height: 260px;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--bg) 40%, var(--bg2)) 0%,
+    var(--bg2) 100%
+  );
+}
+
+.home-spec-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.1rem 1.2rem;
+  background: var(--bg);
+  border-left: 1px solid var(--bd);
+}
+
+@media (max-width: 760px) {
+  .home-spec-card {
+    border-left: none;
+    border-top: 1px solid var(--bd);
+  }
+}
+
+.home-product-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
+}
+
+.home-product-name {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.home-product-signal {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tx3);
+  flex-shrink: 0;
+}
+
+.home-product-signal.on {
+  background: var(--gn);
+  box-shadow: 0 0 0 3px var(--gnl);
+}
+
+.home-product-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--tx2);
+  letter-spacing: 0.02em;
+}
+
+.home-product-sub {
+  margin: -0.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--tx3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .home-spec-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.home-spec-cell {
+  padding: 0.48rem 0.52rem;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.home-spec-cell dt {
+  margin: 0 0 0.1rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.home-spec-cell dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tx);
+  line-height: 1.2;
+}
+
+.home-spec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+}
+
+.home-spec-actions .btn {
+  min-width: 7.5rem;
+}
+
+.home-browser-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--tx3);
+  letter-spacing: 0.02em;
+}
+
+.home-guide-premium {
+  padding: 0.85rem 1rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+}
+
+.home-guide-premium .guide-head {
+  margin-bottom: 0.65rem;
+}
+
+.home-guide-premium .guide-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.home-guide-premium .guide-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (max-width: 900px) {
+  .home-guide-premium .guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.home-guide-premium .guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.6rem 0.65rem 0.7rem;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  min-height: 0;
+}
+
+.home-guide-premium .guide-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.home-guide-premium .guide-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--tx);
+  color: var(--bg);
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-guide-premium .guide-copy strong {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--tx);
+  letter-spacing: -0.01em;
+}
+
+.home-guide-premium .guide-visual {
+  position: relative;
+  min-height: 88px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  overflow: hidden;
+}
+
+.home-guide-premium .mock-btn {
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-guide-premium .mock-btn.primary {
+  background: var(--tx);
+  color: var(--bg);
+}
+
+.home-guide-premium .mock-btn.ghost {
+  border: 1px solid var(--bd);
+  color: var(--tx3);
+  background: var(--bg2);
+}
+
+.home-guide-premium .mock-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.38rem;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.home-guide-premium .mock-row.on {
+  outline: 2px solid var(--acd);
+  background: color-mix(in srgb, var(--acd) 10%, var(--bg2));
+}
+
+.home-guide-premium .mock-dialog {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: stretch;
+}
+
+.home-guide-premium .mock-title {
+  margin: 0;
+  font-size: 0.58rem;
+  color: var(--tx3);
+  text-align: left;
+}
+
+.home-guide-premium .mock-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.2rem 0.25rem;
+  border-radius: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+}
+
+.home-guide-premium .mock-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--bd);
+  background: var(--bg);
+  font-size: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tx3);
+}
+
+.home-guide-premium .mock-icon.accent {
+  background: var(--tx);
+  color: var(--bg);
+  border-color: var(--tx);
+}
+
+.home-guide-premium .guide-visual :deep(.guide-pointer) {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+}
+
+.home-guide-premium .visual-1 :deep(.guide-pointer) {
+  bottom: 4px;
+  right: 18%;
+  transform: rotate(-8deg);
+}
+
+.home-guide-premium .visual-2 :deep(.guide-pointer) {
+  bottom: 6px;
+  left: 38%;
+  transform: rotate(-18deg) scaleX(-1);
+}
+
+.home-guide-premium .visual-3 :deep(.guide-pointer) {
+  bottom: 8px;
+  right: 20%;
+  transform: rotate(6deg);
+}
+
+.home-guide-premium .visual-4 :deep(.guide-pointer) {
+  top: 8px;
+  right: 28%;
+  transform: rotate(12deg);
+}
+
+.topbar-icon-btn.is-active {
+  border-color: var(--tx);
+  color: var(--tx);
+  background: color-mix(in srgb, var(--tx) 8%, var(--bg2));
+}

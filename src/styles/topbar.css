@@ -83,3 +83,7 @@
   align-items: center;
   gap: 0.35rem;
 }
+
+.app-topbar-end :deep(.driver-ver) {
+  flex-shrink: 0;
+}

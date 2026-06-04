@@ -1,7 +1,5 @@
 <script setup>
 import { ref, computed, provide, onMounted, onUnmounted, watch, KeepAlive } from "vue";
-import IconHome from "@/components/icons/IconHome.vue";
-import IconUnplug from "@/components/icons/IconUnplug.vue";
 import { uiDiagLog } from "@/composables/useUiDiag.js";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
@@ -9,7 +7,7 @@ import { useSettingFeedback } from "@/composables/useSettingFeedback.js";
 import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
 import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
-import AppTopbar from "@/components/layout/AppTopbar.vue";
+import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
 
 const router = useRouter();
@@ -65,12 +63,6 @@ const connectionText = computed(() => {
   if (connecting.value) return "同步中 · 请勿频繁点击";
   if (online.value) return "鼠标在线 · 自动同步中";
   return "接收器已授权 · 等待鼠标";
-});
-
-const statusDotClass = computed(() => {
-  if (isReady.value) return "";
-  if (connecting.value || online.value) return "w";
-  return "e";
 });
 
 const statusLine = computed(() => {
@@ -209,11 +201,6 @@ onMounted(async () => {
 
 onUnmounted(() => stopAutoPoll());
 
-function goHome() {
-  stopAutoPoll();
-  router.push("/");
-}
-
 async function onDisconnect() {
   stopAutoPoll();
   await disconnect();
@@ -275,37 +262,11 @@ async function onPair() {
 
 <template>
   <div class="driver-page driver-shell">
-    <AppTopbar logo-size="sm">
-      <template #meta>
-        <span class="driver-ver">2026-06-05-c</span>
-      </template>
-      <template #status>
-        <span class="topbar-pill">
-          <span class="sd" :class="statusDotClass" />
-          {{ connectionText }}
-        </span>
-      </template>
-      <template #actions>
-        <button
-          type="button"
-          class="topbar-icon-btn"
-          title="返回首页（保持连接）"
-          aria-label="返回首页"
-          @click="goHome"
-        >
-          <IconHome />
-        </button>
-        <button
-          type="button"
-          class="topbar-icon-btn danger"
-          title="断开连接"
-          aria-label="断开连接"
-          @click="onDisconnect"
-        >
-          <IconUnplug />
-        </button>
-      </template>
-    </AppTopbar>
+    <DriverAppTopbar
+      logo-size="sm"
+      :disconnect-busy="refreshing"
+      @disconnect="onDisconnect"
+    />
 
     <div v-show="showConnectBanner && !booting && !wasReadyOnce" class="container connect-banner-wrap">
       <div class="connect-banner">

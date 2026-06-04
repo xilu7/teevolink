@@ -1,13 +1,11 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useDevice } from "@/composables/useDevice.js";
 import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
-import AppTopbar from "@/components/layout/AppTopbar.vue";
+import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
-import HomeSupportNotice from "@/components/home/HomeSupportNotice.vue";
 import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
-import IconUnplug from "@/components/icons/IconUnplug.vue";
 
 const router = useRouter();
 const {
@@ -15,9 +13,6 @@ const {
   syncDevice,
   deviceOpen,
   isReady,
-  online,
-  connecting,
-  isWired,
   disconnect,
 } = useDevice();
 
@@ -25,21 +20,6 @@ const busy = ref(false);
 const statusMsg = ref("");
 const error = ref("");
 const success = ref("");
-
-const BUILD_TAG = "2026-06-05-c";
-
-const homeStatusText = computed(() => {
-  if (!deviceOpen.value) return "";
-  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步中";
-  if (online.value) return "鼠标在线";
-  return "接收器已就绪";
-});
-
-async function onDisconnect() {
-  if (busy.value) return;
-  await disconnect();
-}
 
 onMounted(async () => {
   if (deviceOpen.value && isReady.value) {
@@ -50,6 +30,11 @@ onMounted(async () => {
     }
   }
 });
+
+async function onDisconnect() {
+  if (busy.value) return;
+  await disconnect();
+}
 
 async function runConnect() {
   if (busy.value) return;
@@ -106,32 +91,12 @@ function openSettings() {
 
 <template>
   <div class="home-page driver-shell">
-    <AppTopbar logo-size="lg">
-      <template #nav>
-        <span class="nav-active">首页</span>
-      </template>
-      <template #meta>
-        <span class="driver-ver">驱动 {{ BUILD_TAG }}</span>
-      </template>
-      <template v-if="deviceOpen" #status>
-        <span class="topbar-pill">
-          <span class="sd" :class="isReady ? '' : online ? 'w' : 'e'" />
-          {{ homeStatusText }}
-        </span>
-      </template>
-      <template v-if="deviceOpen" #actions>
-        <button
-          type="button"
-          class="topbar-icon-btn danger"
-          title="断开连接"
-          aria-label="断开连接"
-          :disabled="busy"
-          @click="onDisconnect"
-        >
-          <IconUnplug />
-        </button>
-      </template>
-    </AppTopbar>
+    <DriverAppTopbar
+      logo-size="lg"
+      active-nav="home"
+      :disconnect-busy="busy"
+      @disconnect="onDisconnect"
+    />
 
     <main class="container home-main">
       <p v-if="busy && statusMsg" class="home-status">{{ statusMsg }}</p>
@@ -143,14 +108,10 @@ function openSettings() {
         @refresh="runConnect"
       />
 
-      <HomeSupportNotice v-if="!deviceOpen" />
       <HomeConnectGuide v-if="!deviceOpen" />
 
-      <p v-else-if="isReady" class="home-inline-tip">
-        已连接 · 点「打开驱动设置」调校 DPI
-      </p>
-      <p v-else class="home-inline-tip warn">
-        接收器已就绪 · 2.4G 唤醒后点「重新同步」
+      <p v-if="!deviceOpen" class="home-browser-hint">
+        请使用 Chrome 或 Edge 打开 · 需 HTTPS 官方链接
       </p>
 
       <p v-if="success" class="feedback success">{{ success }}</p>
@@ -165,35 +126,18 @@ function openSettings() {
 </template>
 
 <style scoped>
-.home-main {
-  padding: 1rem 0 2.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 960px;
-}
-.home-inline-tip {
-  margin: 0;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--acd);
-  text-align: center;
-}
-.home-inline-tip.warn {
-  color: var(--amx);
-}
 .home-status {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: var(--tx2);
   margin: 0;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.7rem;
   border-radius: 8px;
   background: var(--bg2);
   border: 1px solid var(--bd);
 }
 .feedback {
-  font-size: 0.88rem;
-  padding: 0.55rem 0.65rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.65rem;
   border-radius: 8px;
   margin: 0;
 }

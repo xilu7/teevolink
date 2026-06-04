@@ -6,9 +6,11 @@ import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
 import { ensureSensorConfig, syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import { writeMouseDpi } from "@/composables/useDpiWrite.js";
 import { getDpiStageLabel } from "@/composables/useDpiStageIndex.js";
-import AppTopbar from "@/components/layout/AppTopbar.vue";
+import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
+import { useDevice } from "@/composables/useDevice.js";
 
 const router = useRouter();
+const { disconnect } = useDevice();
 const logs = ref([]);
 const running = ref(false);
 
@@ -248,7 +250,7 @@ async function runFactoryPresets() {
 
 <template>
   <div class="driver-shell diag-page">
-    <AppTopbar logo-size="sm" />
+    <DriverAppTopbar logo-size="sm" @disconnect="disconnect" />
     <main class="container">
       <h1>DPI 专项诊断</h1>
       <p class="lead">

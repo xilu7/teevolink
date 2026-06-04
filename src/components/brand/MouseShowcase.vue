@@ -106,11 +106,11 @@ defineProps({
 }
 .mouse-showcase-front-only.mouse-home-front img {
   width: auto;
-  max-width: 92%;
+  max-width: 88%;
   height: auto;
-  max-height: 200px;
+  max-height: min(260px, 38vh);
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 14px 32px rgba(0, 0, 0, 0.18));
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.22));
 }
 </style>

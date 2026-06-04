@@ -73,6 +73,16 @@ const { isDark, toggleTheme } = useTheme();
   min-height: 58px;
   padding: 0.4rem 0;
 }
+@media (max-width: 720px) {
+  .app-topbar-inner {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+  .app-topbar-end {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
 .app-topbar-start,
 .app-topbar-end {
   display: flex;

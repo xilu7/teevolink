@@ -20,22 +20,22 @@ export const FACTORY_AUTO_RECONNECT = [
 export const HOME_CONNECT_STEPS = [
   {
     step: 1,
-    title: "点击「连接设备」",
-    desc: "插入 RapidSync 接收器，鼠标拨到 2.4G 或 USB 有线，点左侧卡片上的黑色按钮。",
+    title: "点击按钮连接设备",
+    desc: "2.4G + 接收器或 USB 有线",
   },
   {
     step: 2,
-    title: "在弹窗中选择设备",
-    desc: "勾选 RapidSync（接收器），不要选键盘、手柄等其他设备。",
+    title: "点击选择设备",
+    desc: "选 RapidSync",
   },
   {
     step: 3,
-    title: "点击弹窗中的「连接」",
-    desc: "允许浏览器访问 HID。只需授权一次。",
+    title: "点击弹窗的连接",
+    desc: "允许 HID 一次即可",
   },
   {
     step: 4,
-    title: "点「打开驱动设置」",
-    desc: "连接成功后进入调校页，修改 DPI、回报率等。",
+    title: "打开驱动设置",
+    desc: "调校 DPI / 回报率",
   },
 ];

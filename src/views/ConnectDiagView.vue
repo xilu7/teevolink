@@ -4,9 +4,11 @@ import { useRouter } from "vue-router";
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
 import { ensureSensorConfig } from "@/composables/useSensorCatalog.js";
-import AppTopbar from "@/components/layout/AppTopbar.vue";
+import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
+import { useDevice } from "@/composables/useDevice.js";
 
 const router = useRouter();
+const { disconnect } = useDevice();
 const logs = ref([]);
 const running = ref(false);
 const REPORT_ID = 0x08;
@@ -127,7 +129,7 @@ async function runFactoryDiag() {
 
 <template>
   <div class="driver-shell diag-page">
-    <AppTopbar logo-size="sm" />
+    <DriverAppTopbar logo-size="sm" @disconnect="disconnect" />
     <main class="container">
       <h1>连接诊断（工厂 SDK 逐步执行）</h1>
       <p class="lead">
