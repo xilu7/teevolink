@@ -28,6 +28,7 @@ const {
   pollMouseOnline,
   recoverStuckSession,
   enterPairMode,
+  openAuthorizedSession,
   PRODUCT,
 } = useDevice();
 const { feedback, notify } = useSettingFeedback();
@@ -110,6 +111,9 @@ function stopAutoPoll() {
 }
 
 onMounted(async () => {
+  if (!HID.deviceInfo.deviceOpen) {
+    await openAuthorizedSession();
+  }
   if (!HID.deviceInfo.deviceOpen) {
     router.replace("/");
     return;

@@ -7,7 +7,7 @@ import AppTopbar from "@/components/layout/AppTopbar.vue";
 import MouseShowcase from "@/components/brand/MouseShowcase.vue";
 
 const router = useRouter();
-const { connect } = useDevice();
+const { connect, openAuthorizedSession } = useDevice();
 
 const busy = ref(false);
 const phase = ref("");
@@ -40,7 +40,6 @@ async function onConnect() {
   busy.value = true;
   try {
     const result = await connect({
-      maxPollSeconds: 18,
       onPhase: (msg) => {
         phase.value = msg;
       },
@@ -61,6 +60,31 @@ async function onConnect() {
     router.push("/device");
   } catch (e) {
     error.value = e?.message || "连接异常，请重试";
+  } finally {
+    busy.value = false;
+    phase.value = "";
+  }
+}
+
+async function onEnterDriver() {
+  error.value = "";
+  success.value = "";
+  if (!navigator.hid) {
+    error.value = "请使用 Chrome 或 Edge。";
+    return;
+  }
+  busy.value = true;
+  phase.value = "正在打开已授权设备…";
+  try {
+    const ok = await openAuthorizedSession();
+    if (!ok) {
+      error.value = "尚未授权：请先点「连接设备」并在弹窗中选 RapidSync";
+      return;
+    }
+    success.value = "正在进入驱动…";
+    router.push("/device");
+  } catch (e) {
+    error.value = e?.message || "无法进入驱动";
   } finally {
     busy.value = false;
     phase.value = "";
@@ -114,8 +138,16 @@ function sleep(ms) {
           >
             {{ busy ? phase || "连接中…" : "连接设备" }}
           </button>
-          <span class="connect-meta">Web HID · 无需安装</span>
+          <button
+            type="button"
+            class="btn-enter"
+            :disabled="busy"
+            @click="onEnterDriver"
+          >
+            已进入过？直接打开驱动
+          </button>
         </div>
+        <p class="connect-meta">Web HID · 无需安装 · 弹窗请选择 RapidSync</p>
         <p v-if="success" class="feedback success">{{ success }}</p>
         <p v-if="error" class="feedback error">
           {{ error }}
@@ -256,7 +288,26 @@ function sleep(ms) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: 0.5rem;
+}
+
+.btn-enter {
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--bd2);
+  background: var(--bg);
+  color: var(--tx);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-enter:hover:not(:disabled) {
+  border-color: var(--tx3);
+}
+
+.btn-enter:disabled {
+  opacity: 0.5;
 }
 
 .btn-connect {

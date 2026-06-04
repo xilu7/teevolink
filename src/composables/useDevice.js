@@ -89,7 +89,7 @@ export function useDevice() {
    * 用 SDK 导出的 Get_Current_Device_Online 检测鼠标是否上线（无线必做）
    * 未上线时不要调用 Update_Device_Param，否则会卡在「同步中」
    */
-  async function pollMouseOnline(maxSeconds = 60) {
+  async function pollMouseOnline(maxSeconds = 60, readyTimeoutMs = 12000) {
     const dev = await getAuthorizedDevice();
     if (!dev) return false;
 
@@ -98,7 +98,7 @@ export function useDevice() {
         const isOn = await HID.Get_Current_Device_Online(dev);
         if (isOn) {
           await HID.Device_Connect();
-          if (await waitUntilReady(45000)) return true;
+          if (await waitUntilReady(readyTimeoutMs)) return true;
         }
       } catch (e) {
         console.warn("pollMouseOnline", e);
@@ -106,6 +106,20 @@ export function useDevice() {
       await sleep(1000);
     }
     return false;
+  }
+
+  /** 浏览器已授权过接收器时，直接恢复会话（不进首页长等待） */
+  async function openAuthorizedSession() {
+    await init();
+    const dev = await getAuthorizedDevice();
+    if (!dev) return false;
+    try {
+      await HID.Device_Reconnect(dev);
+      return !!HID.deviceInfo.deviceOpen;
+    } catch (e) {
+      console.warn("openAuthorizedSession", e);
+      return false;
+    }
   }
 
   async function resumeAuthorizedDevice() {
@@ -155,9 +169,8 @@ export function useDevice() {
    */
   async function connect(opts = {}) {
     const onPhase = opts.onPhase;
-    const maxPoll = opts.maxPollSeconds ?? 18;
 
-    onPhase?.("正在打开设备选择…");
+    onPhase?.("请在弹窗中选择 RapidSync…");
     await init();
 
     const picked = await HID.Request_Device(HID_FILTERS);
@@ -166,42 +179,50 @@ export function useDevice() {
     }
 
     HID.Device_Remember("mouse", { product: PRODUCT.name });
-    await sleep(400);
+    await sleep(350);
 
-    if (connecting.value) {
-      onPhase?.("正在恢复连接…");
-      await recoverStuckSession();
+    const dev = await getAuthorizedDevice();
+    if (!dev) {
+      return {
+        status: "failed",
+        ready: false,
+        message: "未识别到接收器。请重新插拔 USB 后再点连接",
+      };
     }
 
-    onPhase?.("正在与设备通信…");
+    onPhase?.("正在进入驱动…");
+    try {
+      await HID.Device_Reconnect(dev);
+    } catch (e) {
+      console.warn("Device_Reconnect", e);
+    }
+
+    if (connecting.value) {
+      onPhase?.("正在结束上次同步…");
+      try {
+        await HID.Device_Close();
+        await sleep(500);
+        await HID.Device_Reconnect(dev);
+      } catch (e) {
+        console.warn("connect recover", e);
+      }
+    }
+
     try {
       await HID.Device_Connect();
     } catch (e) {
       console.warn("Device_Connect", e);
     }
 
-    if (await waitUntilReady(10000)) {
-      return { status: "ready", ready: true, message: "已连接，正在进入驱动" };
-    }
-
-    onPhase?.("等待鼠标上线（约 " + maxPoll + " 秒）…");
-    if (await pollMouseOnline(maxPoll)) {
-      return { status: "ready", ready: true, message: "已连接，正在进入驱动" };
-    }
-
-    if (HID.deviceInfo.deviceOpen) {
-      return {
-        status: "authorized",
-        ready: false,
-        message: "接收器已授权。请唤醒鼠标，进入驱动后点「同步设备」",
-      };
-    }
+    onPhase?.("检测连接状态…");
+    const ready = await waitUntilReady(5000);
 
     return {
-      status: "failed",
-      ready: false,
-      message:
-        "未连接成功。请：底部开关拨到 2.4G 或 USB 有线 → 插 RapidSync → 晃动鼠标 → 重试",
+      status: ready ? "ready" : "authorized",
+      ready: !!ready,
+      message: ready
+        ? "已连接，正在进入驱动"
+        : "已进入驱动。请晃动鼠标，再点「同步设备」",
     };
   }
 
@@ -271,6 +292,7 @@ export function useDevice() {
     dongleTypeLabel,
     deviceInfo: HID.deviceInfo,
     connect,
+    openAuthorizedSession,
     disconnect,
     refresh,
     ensureReady,
