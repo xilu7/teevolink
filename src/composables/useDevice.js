@@ -179,14 +179,14 @@ export function useDevice() {
     }
 
     HID.Device_Remember("mouse", { product: PRODUCT.name });
-    await sleep(350);
+    await sleep(200);
 
     const dev = await getAuthorizedDevice();
     if (!dev) {
       return {
         status: "failed",
         ready: false,
-        message: "未识别到接收器。请重新插拔 USB 后再点连接",
+        message: "未识别到接收器。请重新插拔 USB 后再试",
       };
     }
 
@@ -197,32 +197,11 @@ export function useDevice() {
       console.warn("Device_Reconnect", e);
     }
 
-    if (connecting.value) {
-      onPhase?.("正在结束上次同步…");
-      try {
-        await HID.Device_Close();
-        await sleep(500);
-        await HID.Device_Reconnect(dev);
-      } catch (e) {
-        console.warn("connect recover", e);
-      }
-    }
-
-    try {
-      await HID.Device_Connect();
-    } catch (e) {
-      console.warn("Device_Connect", e);
-    }
-
-    onPhase?.("检测连接状态…");
-    const ready = await waitUntilReady(5000);
-
+    // 首页不等待鼠标上线、不调用 Device_Connect（避免卡在 Connecting）
     return {
-      status: ready ? "ready" : "authorized",
-      ready: !!ready,
-      message: ready
-        ? "已连接，正在进入驱动"
-        : "已进入驱动。请晃动鼠标，再点「同步设备」",
+      status: "authorized",
+      ready: connected.value,
+      message: "已进入驱动。唤醒鼠标后点「同步设备」即可改 DPI",
     };
   }
 
@@ -260,8 +239,18 @@ export function useDevice() {
       applySensorConfig();
       return true;
     }
-    if (connecting.value) return recoverStuckSession();
-    return pollMouseOnline(30);
+    if (connecting.value) {
+      try {
+        await HID.Device_Close();
+        await sleep(400);
+        const dev = await getAuthorizedDevice();
+        if (dev) await HID.Device_Reconnect(dev);
+      } catch (e) {
+        console.warn("bootDevicePage connecting", e);
+      }
+      return false;
+    }
+    return pollMouseOnline(8, 6000);
   }
 
   async function enterPairMode() {

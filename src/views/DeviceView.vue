@@ -120,7 +120,11 @@ onMounted(async () => {
   }
   booting.value = true;
   pollSeconds.value = 0;
+  const bootTimer = setTimeout(() => {
+    booting.value = false;
+  }, 8000);
   const ok = await bootDevicePage();
+  clearTimeout(bootTimer);
   booting.value = false;
   if (ok) {
     notify("鼠标已连接，可以修改设置");

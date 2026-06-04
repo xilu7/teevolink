@@ -23,6 +23,9 @@ const specs = [
   { label: "连接", value: "蓝牙 · 2.4G · USB" },
 ];
 
+/** 改这个数字并 push 后，页脚能确认 Vercel 是否已更新 */
+const BUILD_TAG = "2026-06-04-b";
+
 const modules = [
   { title: "性能调校", desc: "场景 · DPI · LOD · 回报率" },
   { title: "按键", desc: "6 键改键 · 宏" },
@@ -38,6 +41,14 @@ async function onConnect() {
   }
 
   busy.value = true;
+  const guard = setTimeout(() => {
+    if (!busy.value) return;
+    busy.value = false;
+    phase.value = "";
+    error.value =
+      "连接耗时过长。若已选过 RapidSync，请点「直接打开驱动」；或刷新页面后重试。";
+  }, 12000);
+
   try {
     const result = await connect({
       onPhase: (msg) => {
@@ -56,11 +67,11 @@ async function onConnect() {
     }
 
     success.value = result.message;
-    await sleep(400);
     router.push("/device");
   } catch (e) {
     error.value = e?.message || "连接异常，请重试";
   } finally {
+    clearTimeout(guard);
     busy.value = false;
     phase.value = "";
   }
@@ -132,22 +143,22 @@ function sleep(ms) {
         <div class="connect-actions">
           <button
             type="button"
+            class="btn-enter btn-enter-primary"
+            :disabled="busy"
+            @click="onEnterDriver"
+          >
+            {{ busy ? phase || "打开中…" : "直接打开驱动" }}
+          </button>
+          <button
+            type="button"
             class="btn-connect"
             :disabled="busy"
             @click="onConnect"
           >
-            {{ busy ? phase || "连接中…" : "连接设备" }}
-          </button>
-          <button
-            type="button"
-            class="btn-enter"
-            :disabled="busy"
-            @click="onEnterDriver"
-          >
-            已进入过？直接打开驱动
+            {{ busy ? phase || "连接中…" : "首次连接（选 RapidSync）" }}
           </button>
         </div>
-        <p class="connect-meta">Web HID · 无需安装 · 弹窗请选择 RapidSync</p>
+        <p class="connect-meta">Web HID · 弹窗请选择 RapidSync · 页脚版本 {{ BUILD_TAG }}</p>
         <p v-if="success" class="feedback success">{{ success }}</p>
         <p v-if="error" class="feedback error">
           {{ error }}
@@ -302,8 +313,18 @@ function sleep(ms) {
   cursor: pointer;
 }
 
+.btn-enter-primary {
+  background: var(--tx);
+  color: var(--bg);
+  border-color: var(--tx);
+}
+
 .btn-enter:hover:not(:disabled) {
   border-color: var(--tx3);
+}
+
+.btn-enter-primary:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .btn-enter:disabled {
