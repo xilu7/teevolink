@@ -88,7 +88,9 @@ export const PRODUCT = {
  * - RapidSync 接收器：VID 0x3554 · PID 0xF516
  * - 第二条仅 VID：兼容 USB 有线等同厂设备
  */
+/** 实物 RapidSync 常见 PID：0xF523（诊断日志已确认）；文档示例 0xF516 */
 export const HID_FILTERS = [
+  { vendorId: 0x3554, productId: 0xf523 },
   { vendorId: 0x3554, productId: 0xf516 },
   { vendorId: 0x3554 },
 ];

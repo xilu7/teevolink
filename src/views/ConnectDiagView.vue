@@ -76,10 +76,15 @@ async function runFactoryDiag() {
       return;
     }
 
-    log("Device_Connect（开始读参数，可能需 30～60 秒）…");
-    await HID.Device_Connect();
+    log("Device_Connect（读参数；网页模式已跳过灯效类接收器命令）…");
+    try {
+      await HID.Device_Connect();
+    } catch (e) {
+      log("Device_Connect 异常：" + (e?.message || e), false);
+      return;
+    }
 
-    for (let i = 1; i <= 60; i++) {
+    for (let i = 1; i <= 90; i++) {
       const st = HID.deviceInfo.connectState;
       const stName =
         st === HID.DeviceConectState.Connected
@@ -90,7 +95,10 @@ async function runFactoryDiag() {
               ? "TimeOut"
               : "Disconnected";
       if (i % 5 === 0 || st === HID.DeviceConectState.Connected) {
-        log(`第 ${i} 秒：状态=${stName}，online=${HID.deviceInfo.online}`, st === HID.DeviceConectState.Connected);
+        log(
+          `第 ${i} 秒：状态=${stName}，online=${HID.deviceInfo.online}，deviceOpen=${HID.deviceInfo.deviceOpen}`,
+          st === HID.DeviceConectState.Connected
+        );
       }
       if (st === HID.DeviceConectState.Connected) {
         log("成功：已进入 Connected，可以改 DPI", true);
@@ -102,7 +110,7 @@ async function runFactoryDiag() {
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
-    log("60 秒内未 Connected：卡在参数同步", false);
+    log("90 秒内未 Connected：若曾变 Disconnected，多为同步失败（已避免自动关设备）", false);
   } catch (e) {
     log("异常：" + (e?.message || e), false);
   } finally {

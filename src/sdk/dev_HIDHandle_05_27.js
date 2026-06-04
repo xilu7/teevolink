@@ -1025,7 +1025,8 @@ function Device_Remember(deviceType, info) {
 //设备连接
 async function Device_Connect() {
   if (visit == false) {
-    if (deviceInfo.isWired == false) {
+    /** 网页驱动 driverOnlineFlag=false 时跳过 Get_Dongle_Param，避免部分 8K 接收器固件命令导致断连 */
+    if (deviceInfo.isWired == false && driverOnlineFlag) {
       await Get_Dongle_Param();
     }
 
@@ -3403,8 +3404,11 @@ async function Get_Online_Interval() {
       }
     } catch (error) {
       console.error("Get_Online_Interval", error);
-      Device_Close();
-      return flag;
+      if (getFlashTimerID) {
+        clearInterval(getFlashTimerID);
+      }
+      deviceInfo.connectState = DeviceConectState.TimeOut;
+      return false;
     }
   }
   return flag;

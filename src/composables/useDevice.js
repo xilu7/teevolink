@@ -6,7 +6,7 @@ import { applySensorConfig, loadSensorCatalog } from "./useSensorCatalog.js";
 let hidListenersRegistered = false;
 
 const VENDOR_ID = HID_FILTERS[0]?.vendorId ?? 0x3554;
-const DONGLE_PID = 0xf516;
+const DONGLE_PIDS = [0xf523, 0xf516];
 const REPORT_ID = 0x08;
 
 const STATE_LABEL = {
@@ -80,7 +80,7 @@ export function useDevice() {
   function scoreHidDevice(d) {
     if (d.vendorId !== VENDOR_ID || !isValidHidInterface(d)) return -1;
     let score = 0;
-    if (d.productId === DONGLE_PID) score += 100;
+    if (DONGLE_PIDS.includes(d.productId)) score += 100;
     const name = (d.productName || "").toLowerCase();
     if (/rapid|sync|terra|teevo|8k/i.test(name)) score += 50;
     return score;
