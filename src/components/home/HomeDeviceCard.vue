@@ -5,7 +5,7 @@ import { PRODUCT } from "@/config/terra-pro.js";
 import MouseShowcase from "@/components/brand/MouseShowcase.vue";
 
 const props = defineProps({
-  booting: { type: Boolean, default: false },
+  busy: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["connect", "open-settings", "refresh"]);
@@ -51,11 +51,11 @@ const dongleVer = computed(() => deviceInfo.version?.dongle || "—");
 const mouseVer = computed(() => deviceInfo.version?.device || "—");
 
 const statusText = computed(() => {
-  if (props.booting) return "正在检查连接…";
+  if (props.busy) return "连接中，请稍候…";
   if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
   if (connecting.value) return "同步参数中…";
-  if (deviceOpen.value && online.value) return "鼠标在线 · 同步中";
-  if (deviceOpen.value) return "接收器已授权 · 等待鼠标";
+  if (deviceOpen.value && online.value) return "鼠标在线";
+  if (deviceOpen.value) return "接收器已就绪 · 等待鼠标";
   return "未连接";
 });
 </script>
@@ -110,10 +110,10 @@ const statusText = computed(() => {
           v-if="!deviceOpen"
           type="button"
           class="btn btn-primary"
-          :disabled="booting"
+          :disabled="busy"
           @click="emit('connect')"
         >
-          连接设备
+          {{ busy ? "连接中…" : "连接设备" }}
         </button>
         <template v-else>
           <button
@@ -128,10 +128,10 @@ const statusText = computed(() => {
             v-else
             type="button"
             class="btn btn-secondary"
-            :disabled="booting"
+            :disabled="busy"
             @click="emit('refresh')"
           >
-            {{ booting ? "同步中…" : "重新同步" }}
+            {{ busy ? "同步中…" : "重新同步" }}
           </button>
           <button
             v-if="isReady"

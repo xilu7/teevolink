@@ -24,8 +24,8 @@ export const FACTORY_AUTO_RECONNECT = [
 export const HOME_CONNECT_STEPS = [
   {
     step: 1,
-    title: "点击右上角 + 连接设备",
-    desc: "插入 RapidSync 接收器后，点顶栏圆形 + 按钮。",
+    title: "点击「连接设备」",
+    desc: "插入 RapidSync 接收器后，点设备卡片上的连接设备按钮。",
   },
   {
     step: 2,

@@ -210,7 +210,7 @@ async function onPair() {
 
 <template>
   <div class="driver-page driver-shell">
-    <AppTopbar logo-size="sm" show-home show-connect @home="goHome" @connect="onRefresh">
+    <AppTopbar logo-size="sm" show-home @home="goHome">
       <template #status>
         <span class="sync-pill">
           <span class="sd" :class="statusDotClass" />

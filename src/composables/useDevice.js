@@ -296,7 +296,8 @@ export function useDevice() {
    * 不调用 Request_Device，用户无需再次点弹窗。
    */
   async function autoConnectFromFactory(opts = {}) {
-    const onPhase = opts.onPhase;
+    const silent = opts.silent === true;
+    const onPhase = silent ? null : opts.onPhase;
     await init();
 
     onPhase?.("正在恢复已授权设备…");
@@ -312,7 +313,7 @@ export function useDevice() {
         status: "need_request",
         ready: false,
         hasAuth: false,
-        message: "尚未授权。请点 + 首次连接 RapidSync",
+        message: "尚未授权。请点击「连接设备」并选择 RapidSync",
       };
     }
 
@@ -345,9 +346,7 @@ export function useDevice() {
         };
       }
       onPhase?.("等待参数同步…");
-      const ready = await waitForMouseReady(opts.maxSeconds ?? 20, (sec, max) => {
-        onPhase?.(`同步中 ${sec}/${max} 秒`);
-      });
+      const ready = await waitForMouseReady(opts.maxSeconds ?? 18);
       return {
         status: ready ? "ready" : "authorized",
         ready,
@@ -408,10 +407,7 @@ export function useDevice() {
       };
     }
 
-    onPhase?.("等待鼠标上线（请晃动）…");
-    const ready = await waitForMouseReady(opts.maxSeconds ?? 40, (sec, max) => {
-      onPhase?.(`检测鼠标 ${sec}/${max} 秒…`);
-    });
+    const ready = await waitForMouseReady(opts.maxSeconds ?? 18);
 
     return {
       status: ready ? "ready" : "authorized",
