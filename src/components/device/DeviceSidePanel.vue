@@ -39,37 +39,27 @@ const chips = computed(() => {
       <span v-else-if="status?.ready" class="side-dot on" title="已连接" />
     </header>
 
-    <div class="side-body">
-      <ul v-if="chips.length" class="side-stats">
-        <li v-for="(row, i) in chips" :key="i" class="side-stat" :class="{ accent: row.accent }">
-          <span class="stat-label">{{ row.label }}</span>
-          <span class="stat-value" :class="{ live: row.live }">{{ row.value }}</span>
-        </li>
-      </ul>
+    <ul v-if="chips.length" class="side-stats">
+      <li v-for="(row, i) in chips" :key="i" class="side-stat" :class="{ accent: row.accent }">
+        <span class="stat-label">{{ row.label }}</span>
+        <span class="stat-value" :class="{ live: row.live }">{{ row.value }}</span>
+      </li>
+    </ul>
 
-      <div class="side-mouse">
-        <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
-      </div>
+    <div class="side-mouse">
+      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
     </div>
   </div>
 </template>
 
 <style scoped>
 .device-side-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 0;
-}
-
-.side-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(92px, 38%);
-  gap: 0.45rem;
-  align-items: center;
-  flex: 1;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0.55rem;
+  width: 100%;
+  height: 100%;
   min-height: 0;
 }
 .side-head {
@@ -102,14 +92,13 @@ const chips = computed(() => {
 .side-stats {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0.5rem 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   border: 1px solid var(--bd);
   border-radius: 10px;
   background: var(--bg);
-  padding: 0.5rem 0.55rem;
 }
 .side-stat {
   display: flex;
@@ -137,23 +126,24 @@ const chips = computed(() => {
 .stat-value.live {
   color: var(--ac);
 }
+/* 鼠图贴在卡片底部，高度固定，不随窗口 vh 跳动 */
 .side-mouse {
+  align-self: end;
+  justify-self: center;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  height: 108px;
-  padding: 0.2rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg2) 65%, var(--bg));
-  border: 1px solid var(--bd);
+  width: 100%;
+  height: 112px;
+  padding: 0 0 0.1rem;
 }
 .side-mouse img {
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100px;
+  max-width: 156px;
+  max-height: 108px;
   object-fit: contain;
-  object-position: center;
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.14));
+  object-position: center bottom;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.14));
 }
 </style>
