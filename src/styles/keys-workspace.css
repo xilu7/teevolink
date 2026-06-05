@@ -10,9 +10,10 @@
 
 .keys-top-band {
   display: grid;
-  grid-template-columns: minmax(172px, 188px) minmax(0, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 0;
-  align-items: start;
+  align-items: stretch;
+  min-height: min(220px, 30vh);
   border-radius: 16px;
   border: 1px solid var(--bd);
   background: var(--bg2);
@@ -23,10 +24,10 @@
 .keys-pick-col {
   display: flex;
   flex-direction: column;
-  padding: 0.75rem 0.7rem;
-  border-right: 1px solid var(--bd);
+  min-height: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 1px solid var(--bd);
   background: color-mix(in srgb, var(--bg) 55%, var(--bg2));
-  align-self: start;
 }
 
 .keys-pick-head {
@@ -42,9 +43,11 @@
 }
 
 .keys-pick-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  flex: 1;
+  align-content: start;
 }
 
 .keys-pick-btn {
@@ -52,8 +55,8 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0.22rem;
-  padding: 0.5rem 0.55rem;
-  min-height: 2.85rem;
+  padding: 0.48rem 0.52rem;
+  min-height: 2.65rem;
   border-radius: 10px;
   border: 1px solid var(--bd);
   background: var(--bg);
@@ -103,16 +106,18 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   background: var(--bg);
 }
 
 .keys-hero-wrap {
   flex: 1;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  min-height: min(210px, 28vh);
-  padding: 0.45rem 0.85rem 0.5rem;
+  min-height: 0;
+  height: 100%;
+  padding: 0.4rem 0.55rem;
   background: linear-gradient(
     180deg,
     var(--bg) 0%,
@@ -189,10 +194,11 @@
 .keys-hero-dual {
   display: grid;
   grid-template-columns: 1.12fr 0.88fr;
-  gap: 0.35rem 0.55rem;
+  gap: 0.3rem 0.45rem;
   width: 100%;
-  max-width: min(560px, 100%);
-  align-items: end;
+  max-width: 100%;
+  height: 100%;
+  align-items: center;
   justify-items: center;
 }
 
@@ -206,11 +212,13 @@
 }
 
 .keys-hero-stage--front {
-  min-height: min(200px, 27vh);
+  min-height: 0;
+  height: 100%;
 }
 
 .keys-hero-stage--back {
-  min-height: min(160px, 22vh);
+  min-height: 0;
+  height: 100%;
 }
 
 .keys-hero-stage img {
@@ -222,11 +230,11 @@
 }
 
 .keys-hero-stage--front img {
-  max-height: min(220px, 30vh);
+  max-height: min(200px, 28vh);
 }
 
 .keys-hero-stage--back img {
-  max-height: min(175px, 24vh);
+  max-height: min(165px, 24vh);
   opacity: 0.94;
 }
 
@@ -328,10 +336,14 @@
 @media (max-width: 720px) {
   .keys-top-band {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
   .keys-pick-col {
-    border-right: none;
-    border-bottom: 1px solid var(--bd);
+    border-left: none;
+    border-top: 1px solid var(--bd);
+  }
+  .keys-pick-grid {
+    grid-template-columns: 1fr;
   }
   .keys-combo-layout,
   .keys-macro-layout {

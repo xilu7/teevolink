@@ -57,6 +57,12 @@ provide(KEYS_PAGE_KEY, {
 <template>
   <div class="keys-page driver-shell">
     <section class="keys-top-band">
+      <div class="keys-hero-col">
+        <div class="keys-hero-wrap">
+          <KeysMouseHero />
+        </div>
+      </div>
+
       <aside class="keys-pick-col">
         <header class="keys-pick-head">
           <h3>选择按键</h3>
@@ -75,12 +81,6 @@ provide(KEYS_PAGE_KEY, {
           </button>
         </div>
       </aside>
-
-      <div class="keys-hero-col">
-        <div class="keys-hero-wrap">
-          <KeysMouseHero />
-        </div>
-      </div>
     </section>
 
     <nav class="keys-mode-bridge" aria-label="映射模式">
