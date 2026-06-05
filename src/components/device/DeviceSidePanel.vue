@@ -54,10 +54,9 @@ const chips = computed(() => {
 
 <style scoped>
 .device-side-panel {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  align-content: stretch;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -67,6 +66,7 @@ const chips = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex-shrink: 0;
 }
 .side-title {
   font-size: 0.72rem;
@@ -129,12 +129,11 @@ const chips = computed(() => {
   color: var(--ac);
 }
 .side-mouse {
-  align-self: end;
+  flex-shrink: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 0;
-  padding: 0;
+  padding: 0.1rem 0 0.15rem;
 }
 </style>

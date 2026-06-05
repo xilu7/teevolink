@@ -30,8 +30,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem 0.85rem;
-  min-height: 248px;
+  padding: 1.1rem 0.65rem;
+  min-height: 220px;
   background: linear-gradient(
     168deg,
     color-mix(in srgb, var(--bg2) 70%, var(--bg)) 0%,
@@ -157,14 +157,15 @@
 }
 
 .home-spec-actions .btn-home-cta {
-  background: var(--gn);
-  border-color: var(--gn);
+  background: var(--ac);
+  border: 1px solid var(--ac);
   color: #fff;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--ac) 28%, transparent);
 }
 
 .home-spec-actions .btn-home-cta:hover {
-  background: color-mix(in srgb, var(--gn) 88%, #000);
-  border-color: color-mix(in srgb, var(--gn) 88%, #000);
+  background: var(--acd);
+  border-color: var(--acd);
 }
 
 /* —— 欢迎区 + 连接引导 —— */

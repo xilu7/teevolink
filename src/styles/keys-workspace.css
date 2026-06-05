@@ -13,7 +13,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 0;
   align-items: stretch;
-  min-height: min(220px, 30vh);
+  min-height: min(196px, 27vh);
   border-radius: 16px;
   border: 1px solid var(--bd);
   background: var(--bg2);
@@ -117,7 +117,7 @@
   justify-content: center;
   min-height: 0;
   height: 100%;
-  padding: 0.4rem 0.55rem;
+  padding: 0.35rem 0.45rem;
   background: linear-gradient(
     180deg,
     var(--bg) 0%,
@@ -193,6 +193,7 @@
 
 .keys-hero-wrap .mouse-duo--keys {
   margin: 0 auto;
+  max-width: 96%;
 }
 
 .keys-hero-hotspot {
