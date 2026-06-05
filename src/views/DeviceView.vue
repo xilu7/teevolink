@@ -43,6 +43,7 @@ const { feedback, notify } = useSettingFeedback();
 const {
   wasEverReady,
   displayReady,
+  showCachedMetrics,
   linkDetail,
 } = useConnectionDisplay();
 
@@ -75,9 +76,9 @@ const statusLine = computed(() => {
     dongleTypeLabel.value,
     connectionText.value,
     bat,
-    displayReady.value ? `${dpi} DPI` : null,
-    displayReady.value ? `${mouseCfg.value.reportRate} Hz` : null,
-    displayReady.value ? `配置${profileLabel.value}` : null,
+    showCachedMetrics.value ? `${dpi} DPI` : null,
+    showCachedMetrics.value ? `${mouseCfg.value.reportRate} Hz` : null,
+    showCachedMetrics.value ? `配置${profileLabel.value}` : null,
   ].filter(Boolean);
   return parts.join(" · ");
 });
@@ -89,11 +90,17 @@ const deviceStatusDetail = computed(() => {
     name: PRODUCT.name,
     receiver: dongleTypeLabel.value,
     link: connectionText.value,
-    battery: battery.value?.level != null ? `${battery.value.level}%` : null,
-    dpi: displayReady.value && dpi != null ? dpi : null,
-    hz: displayReady.value ? mouseCfg.value.reportRate : null,
+    battery:
+      battery.value?.level != null
+        ? `${battery.value.level}%`
+        : showCachedMetrics.value
+          ? "—"
+          : null,
+    dpi: showCachedMetrics.value ? (dpi ?? null) : null,
+    hz: showCachedMetrics.value ? mouseCfg.value.reportRate : null,
     profile: profileLabel.value,
-    ready: displayReady.value,
+    ready: isReady.value,
+    sleeping: showCachedMetrics.value && !isReady.value,
   };
 });
 

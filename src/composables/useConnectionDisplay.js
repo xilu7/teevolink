@@ -38,8 +38,15 @@ export function useConnectionDisplay() {
   const displayConnecting = computed(() => {
     if (!connecting.value) return false;
     if (displayReady.value) return false;
+    /** 曾连上后睡眠/唤醒：不闪「同步中」，避免侧栏与顶栏布局跳动 */
+    if (wasEverReady.value) return false;
     return true;
   });
+
+  /** 睡眠时仍展示 DPI/回报率等（用 Flash 缓存值），保持与唤醒时相同行数与高度 */
+  const showCachedMetrics = computed(
+    () => wasEverReady.value && deviceOpen.value
+  );
 
   const statusText = computed(() => {
     if (!deviceOpen.value) return "未连接";
@@ -83,6 +90,7 @@ export function useConnectionDisplay() {
     wasEverReady,
     displayReady,
     displayConnecting,
+    showCachedMetrics,
     statusText,
     statusDotClass,
     linkDetail,
