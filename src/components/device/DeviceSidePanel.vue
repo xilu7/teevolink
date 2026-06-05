@@ -128,18 +128,18 @@ const chips = computed(() => {
   color: var(--ac);
 }
 .side-mouse {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 140px;
-  padding: 0.25rem 0 0.15rem;
+  padding: 0.35rem 0 0;
+  margin-top: auto;
 }
 .side-mouse img {
   width: 100%;
-  max-width: 200px;
-  max-height: min(220px, 38vh);
+  max-width: 168px;
+  max-height: min(120px, 18vh);
   object-fit: contain;
-  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.16));
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.14));
 }
 </style>

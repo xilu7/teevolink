@@ -57,12 +57,7 @@ async function assignMacro(i) {
 </template>
 
 <style scoped>
-.keys-macro-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
-  gap: 0.75rem;
-  min-height: 0;
-}
+/* layout in keys-workspace.css */
 .macro-toolbar {
   display: flex;
   flex-wrap: wrap;

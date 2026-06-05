@@ -56,41 +56,44 @@ provide(KEYS_PAGE_KEY, {
 
 <template>
   <div class="keys-page driver-shell">
-    <aside class="keys-pick-col panel-compact">
-      <header class="panel-compact-head">
-        <h3>选择按键</h3>
-      </header>
-      <div class="keys-pick-grid">
-        <button
-          v-for="b in MOUSE_BUTTONS"
-          :key="b.index"
-          type="button"
-          class="keys-pick-btn"
-          :class="{ active: selectedBtn === b.index }"
-          @click="selectedBtn = b.index"
-        >
-          <strong>{{ b.label }}</strong>
-          <span>{{ labelForKey(b.index) }}</span>
-        </button>
+    <section class="keys-top-band">
+      <aside class="keys-pick-col">
+        <header class="keys-pick-head">
+          <h3>选择按键</h3>
+        </header>
+        <div class="keys-pick-grid">
+          <button
+            v-for="b in MOUSE_BUTTONS"
+            :key="b.index"
+            type="button"
+            class="keys-pick-btn"
+            :class="{ active: selectedBtn === b.index }"
+            @click="selectedBtn = b.index"
+          >
+            <strong>{{ b.label }}</strong>
+            <span>{{ labelForKey(b.index) }}</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="keys-hero-col">
+        <div class="keys-hero-wrap">
+          <KeysMouseHero />
+        </div>
+        <nav class="keys-mode-bar" aria-label="映射模式">
+          <button
+            v-for="m in modes"
+            :key="m.id"
+            type="button"
+            class="keys-mode-tab"
+            :class="{ active: mode === m.id }"
+            @click="mode = m.id"
+          >
+            {{ m.label }}
+          </button>
+        </nav>
       </div>
-    </aside>
-
-    <div class="keys-hero-wrap">
-      <KeysMouseHero />
-    </div>
-
-    <nav class="keys-mode-bar" aria-label="映射模式">
-      <button
-        v-for="m in modes"
-        :key="m.id"
-        type="button"
-        class="keys-mode-tab"
-        :class="{ active: mode === m.id }"
-        @click="mode = m.id"
-      >
-        {{ m.label }}
-      </button>
-    </nav>
+    </section>
 
     <div class="keys-panel-slot">
       <div class="keys-panel-inner">
