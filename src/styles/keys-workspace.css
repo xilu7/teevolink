@@ -10,7 +10,7 @@
 
 .keys-top-band {
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
+  grid-template-columns: minmax(172px, 188px) minmax(0, 1fr);
   gap: 0;
   align-items: start;
   border-radius: 16px;
@@ -23,14 +23,14 @@
 .keys-pick-col {
   display: flex;
   flex-direction: column;
-  padding: 0.7rem 0.65rem;
+  padding: 0.75rem 0.7rem;
   border-right: 1px solid var(--bd);
   background: color-mix(in srgb, var(--bg) 55%, var(--bg2));
   align-self: start;
 }
 
 .keys-pick-head {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.55rem;
 }
 
 .keys-pick-head h3 {
@@ -42,17 +42,18 @@
 }
 
 .keys-pick-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.32rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
 }
 
 .keys-pick-btn {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.08rem;
-  padding: 0.42rem 0.48rem;
+  align-items: stretch;
+  gap: 0.22rem;
+  padding: 0.5rem 0.55rem;
+  min-height: 2.85rem;
   border-radius: 10px;
   border: 1px solid var(--bd);
   background: var(--bg);
@@ -62,15 +63,29 @@
 }
 
 .keys-pick-btn strong {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
+  line-height: 1.35;
   color: var(--tx);
+  white-space: nowrap;
 }
 
-.keys-pick-btn span {
-  font-size: 0.58rem;
+.keys-pick-map {
+  font-size: 0.62rem;
+  line-height: 1.4;
   color: var(--tx3);
-  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.keys-pick-map::before {
+  content: "映射 · ";
+  opacity: 0.75;
+}
+
+.keys-pick-btn.active .keys-pick-map::before {
+  opacity: 0.9;
 }
 
 .keys-pick-btn.active {
@@ -80,7 +95,7 @@
 }
 
 .keys-pick-btn.active strong,
-.keys-pick-btn.active span {
+.keys-pick-btn.active .keys-pick-map {
   color: #fff;
 }
 
@@ -247,13 +262,13 @@
 
 .keys-subtabs {
   display: flex;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
   flex-wrap: wrap;
 }
 
 .keys-subtab {
-  padding: 0.3rem 0.62rem;
+  padding: 0.35rem 0.72rem;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
@@ -271,19 +286,22 @@
 
 .keys-func-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.1rem, 1fr));
-  gap: 0.3rem;
+  grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr));
+  gap: 0.45rem 0.5rem;
   align-content: start;
 }
 
 .keys-func-btn {
-  padding: 0.38rem 0.32rem;
-  border-radius: 8px;
+  padding: 0.48rem 0.5rem;
+  min-height: 2.1rem;
+  border-radius: 9px;
   border: 1px solid var(--bd);
   background: var(--bg2);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  line-height: 1.35;
   color: var(--tx);
+  white-space: nowrap;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }

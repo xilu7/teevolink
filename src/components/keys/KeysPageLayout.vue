@@ -71,7 +71,7 @@ provide(KEYS_PAGE_KEY, {
             @click="selectedBtn = b.index"
           >
             <strong>{{ b.label }}</strong>
-            <span>{{ labelForKey(b.index) }}</span>
+            <span class="keys-pick-map">{{ labelForKey(b.index) }}</span>
           </button>
         </div>
       </aside>
