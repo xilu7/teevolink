@@ -5,6 +5,7 @@ import AppTopbar from "@/components/layout/AppTopbar.vue";
 import IconHome from "@/components/icons/IconHome.vue";
 import IconUnplug from "@/components/icons/IconUnplug.vue";
 import { useDevice } from "@/composables/useDevice.js";
+import { useConnectionDisplay } from "@/composables/useConnectionDisplay.js";
 import { BUILD_TAG } from "@/config/build.js";
 
 const props = defineProps({
@@ -19,24 +20,10 @@ const emit = defineEmits(["disconnect", "connect"]);
 
 const router = useRouter();
 const route = useRoute();
-const { deviceOpen, isReady, online, connecting, isWired } = useDevice();
+const { deviceOpen } = useDevice();
+const { statusText, statusDotClass } = useConnectionDisplay();
 
 const onHome = computed(() => route.path === "/");
-
-const statusText = computed(() => {
-  if (!deviceOpen.value) return "未连接";
-  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步中";
-  if (online.value) return "鼠标在线";
-  return "接收器已就绪";
-});
-
-const statusDotClass = computed(() => {
-  if (!deviceOpen.value) return "e";
-  if (isReady.value) return "";
-  if (connecting.value || online.value) return "w";
-  return "e";
-});
 
 function goHome() {
   if (!onHome.value) router.push("/");

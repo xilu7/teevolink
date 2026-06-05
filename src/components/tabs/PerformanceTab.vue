@@ -1,6 +1,6 @@
 <script setup>
 
-import { computed, inject, onUnmounted, ref, watch } from "vue";
+import { computed, inject } from "vue";
 
 import { useDevice } from "@/composables/useDevice.js";
 
@@ -14,7 +14,7 @@ import DeviceSidePanel from "@/components/device/DeviceSidePanel.vue";
 
 
 
-const { HID, mouseCfg, deviceInfo, isReady, connecting, deviceOpen } = useDevice();
+const { HID, mouseCfg, deviceInfo, isReady } = useDevice();
 
 const { run } = useHidAction();
 
@@ -24,39 +24,11 @@ const sideLoading = computed(
   () => !!(deviceStatus?.booting?.value || deviceStatus?.refreshing?.value)
 );
 
-/** 避免同步/boot 瞬间 isReady=false 时琥珀色条闪一下 */
-const showPreviewWarn = ref(false);
-let previewWarnTimer;
-
-function clearPreviewWarnTimer() {
-  if (previewWarnTimer) {
-    clearTimeout(previewWarnTimer);
-    previewWarnTimer = null;
-  }
-}
-
-watch(
-  () =>
-    isReady.value ||
-    connecting.value ||
-    sideLoading.value ||
-    !deviceOpen.value,
-  (suppress) => {
-    clearPreviewWarnTimer();
-    if (suppress) {
-      showPreviewWarn.value = false;
-      return;
-    }
-    previewWarnTimer = setTimeout(() => {
-      if (!isReady.value && deviceOpen.value && !connecting.value && !sideLoading.value) {
-        showPreviewWarn.value = true;
-      }
-    }, 700);
-  },
-  { immediate: true }
-);
-
-onUnmounted(clearPreviewWarnTimer);
+/** 仅首次从未连上时显示；浅睡/重连不再闪黄条 */
+const showPreviewWarn = computed(() => {
+  const mode = deviceStatus?.showPreviewMode;
+  return !!(mode?.value ?? mode);
+});
 
 const PRESETS = PRODUCT.defaultDpiPresets;
 

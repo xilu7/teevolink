@@ -9,6 +9,7 @@ import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
+import { useConnectionDisplay } from "@/composables/useConnectionDisplay.js";
 
 const router = useRouter();
 const {
@@ -38,6 +39,11 @@ const {
   PRODUCT,
 } = useDevice();
 const { feedback, notify } = useSettingFeedback();
+const {
+  wasEverReady,
+  displayReady,
+  linkDetail,
+} = useConnectionDisplay();
 
 const tab = ref("performance");
 const refreshing = ref(false);
@@ -57,13 +63,7 @@ const tabs = [
 
 const profileLabel = computed(() => (deviceInfo.profile ?? 0) + 1);
 
-const connectionText = computed(() => {
-  if (!deviceOpen.value) return "未授权 · 请回首页连接";
-  if (isReady.value) return isWired.value ? "已连接 · 有线" : "已连接 · 无线";
-  if (connecting.value) return "同步中 · 请勿频繁点击";
-  if (online.value) return "鼠标在线 · 自动同步中";
-  return "接收器已授权 · 等待鼠标";
-});
+const connectionText = computed(() => linkDetail.value);
 
 const statusLine = computed(() => {
   const i = getDpiStageIndex(mouseCfg.value);
@@ -74,9 +74,9 @@ const statusLine = computed(() => {
     dongleTypeLabel.value,
     connectionText.value,
     bat,
-    isReady.value ? `${dpi} DPI` : null,
-    isReady.value ? `${mouseCfg.value.reportRate} Hz` : null,
-    isReady.value ? `配置${profileLabel.value}` : null,
+    displayReady.value ? `${dpi} DPI` : null,
+    displayReady.value ? `${mouseCfg.value.reportRate} Hz` : null,
+    displayReady.value ? `配置${profileLabel.value}` : null,
   ].filter(Boolean);
   return parts.join(" · ");
 });
@@ -89,22 +89,30 @@ const deviceStatusDetail = computed(() => {
     receiver: dongleTypeLabel.value,
     link: connectionText.value,
     battery: battery.value?.level != null ? `${battery.value.level}%` : null,
-    dpi: isReady.value && dpi != null ? dpi : null,
-    hz: isReady.value ? mouseCfg.value.reportRate : null,
+    dpi: displayReady.value && dpi != null ? dpi : null,
+    hz: displayReady.value ? mouseCfg.value.reportRate : null,
     profile: profileLabel.value,
-    ready: isReady.value,
+    ready: displayReady.value,
   };
 });
 
-/** 已连接后后台轮询不再触发侧栏「同步中」，减少闪烁 */
+/** 浅睡/安静轮询时不闪「同步中」 */
 const sidePanelLoading = computed(
-  () => booting.value || (refreshing.value && !isReady.value)
+  () => booting.value || (refreshing.value && !wasEverReady.value)
 );
 
 provide("deviceStatus", {
   detail: deviceStatusDetail,
   booting,
   refreshing: sidePanelLoading,
+  wasEverReady,
+  showPreviewMode: computed(
+    () =>
+      deviceOpen.value &&
+      !wasEverReady.value &&
+      !displayReady.value &&
+      !connecting.value
+  ),
 });
 
 let bannerDebounceTimer;
@@ -143,28 +151,33 @@ function startAutoPoll() {
     }
     pollSeconds.value += 2;
 
-    if (connecting.value && Date.now() - connectingWatchStart > 12000 && !syncWarned) {
+    if (
+      !wasReadyOnce.value &&
+      connecting.value &&
+      Date.now() - connectingWatchStart > 12000 &&
+      !syncWarned
+    ) {
       syncWarned = true;
       notify("同步卡住，正在自动重置连接…");
       await recoverStuckSession();
-      await syncDevice(15);
+      await syncDevice();
       return;
     }
 
     if (!isReady.value && deviceOpen.value && !refreshing.value && !connecting.value) {
+      if (wasReadyOnce.value || wasEverReady.value) {
+        const on = await checkMouseOnline();
+        if (on) await waitForMouseReady(10);
+        return;
+      }
       refreshing.value = true;
       try {
-        if (wasReadyOnce.value) {
-          const on = await checkMouseOnline();
-          if (on) await waitForMouseReady(8);
-        } else {
-          await syncDevice(12);
-        }
+        await syncDevice();
       } finally {
         refreshing.value = false;
       }
     }
-  }, 2000);
+  }, 4500);
 }
 
 function stopAutoPoll() {
