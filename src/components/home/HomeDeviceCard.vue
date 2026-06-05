@@ -68,7 +68,7 @@ const signalOn = computed(() => isReady.value || online.value);
 <template>
   <section class="home-hero-panel" aria-label="设备信息">
     <div class="home-hero-visual">
-      <MouseShowcase front-only home-front />
+      <MouseShowcase variant="home" />
     </div>
 
     <div class="home-spec-card">

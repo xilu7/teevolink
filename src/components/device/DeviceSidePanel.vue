@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from "vue";
-import { BRAND_ASSETS } from "@/config/brand.js";
+import MouseShowcase from "@/components/brand/MouseShowcase.vue";
 
 const PROFILE_NAMES = ["竞技", "办公", "FPS", "自定义"];
 
@@ -47,7 +47,7 @@ const chips = computed(() => {
     </ul>
 
     <div class="side-mouse">
-      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
+      <MouseShowcase variant="auxiliary" />
     </div>
   </div>
 </template>
@@ -57,10 +57,11 @@ const chips = computed(() => {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   align-content: stretch;
-  gap: 0.55rem;
+  gap: 0.5rem;
   width: 100%;
   height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 .side-head {
   display: flex;
@@ -99,6 +100,7 @@ const chips = computed(() => {
   border: 1px solid var(--bd);
   border-radius: 10px;
   background: var(--bg);
+  flex-shrink: 0;
 }
 .side-stat {
   display: flex;
@@ -126,24 +128,13 @@ const chips = computed(() => {
 .stat-value.live {
   color: var(--ac);
 }
-/* 鼠图贴在卡片底部，高度固定，不随窗口 vh 跳动 */
 .side-mouse {
   align-self: end;
-  justify-self: center;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   width: 100%;
-  height: 112px;
-  padding: 0 0 0.1rem;
-}
-.side-mouse img {
-  width: auto;
-  height: auto;
-  max-width: 156px;
-  max-height: 108px;
-  object-fit: contain;
-  object-position: center bottom;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.14));
+  min-height: 0;
+  padding: 0;
 }
 </style>

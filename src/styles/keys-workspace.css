@@ -191,51 +191,8 @@
   box-shadow: 0 1px 0 color-mix(in srgb, var(--tx) 3%, transparent);
 }
 
-.keys-hero-dual {
-  display: grid;
-  grid-template-columns: 1.12fr 0.88fr;
-  gap: 0.3rem 0.45rem;
-  width: 100%;
-  max-width: 100%;
-  height: 100%;
-  align-items: center;
-  justify-items: center;
-}
-
-.keys-hero-stage {
-  position: relative;
-  width: 100%;
-  margin: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.keys-hero-stage--front {
-  min-height: 0;
-  height: 100%;
-}
-
-.keys-hero-stage--back {
-  min-height: 0;
-  height: 100%;
-}
-
-.keys-hero-stage img {
-  width: 100%;
-  max-width: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.2));
-}
-
-.keys-hero-stage--front img {
-  max-height: min(200px, 28vh);
-}
-
-.keys-hero-stage--back img {
-  max-height: min(165px, 24vh);
-  opacity: 0.94;
+.keys-hero-wrap .mouse-duo--keys {
+  margin: 0 auto;
 }
 
 .keys-hero-hotspot {

@@ -1,0 +1,89 @@
+/* 全站统一：左正面 + 右底面，紧凑并排 */
+
+.mouse-duo {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  padding: 0.32rem 0.38rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg2) 62%, var(--bg));
+  border: 1px solid var(--bd);
+  line-height: 0;
+  box-sizing: border-box;
+}
+
+.mouse-duo__front,
+.mouse-duo__back {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.mouse-duo__back {
+  margin-left: -1px;
+}
+
+.mouse-duo__front img,
+.mouse-duo__back img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.14));
+}
+
+/* 首页：更突出 */
+.mouse-duo--home {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.45rem 0.5rem;
+  gap: 2px;
+}
+
+.mouse-duo--home .mouse-duo__front img {
+  max-height: min(210px, 32vh);
+}
+
+.mouse-duo--home .mouse-duo__back img {
+  max-height: min(175px, 27vh);
+  opacity: 0.96;
+}
+
+/* 性能页设备状态：辅助展示，收在卡片内 */
+.mouse-duo--auxiliary {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.28rem 0.32rem;
+  gap: 1px;
+}
+
+.mouse-duo--auxiliary .mouse-duo__front img {
+  max-height: 76px;
+}
+
+.mouse-duo--auxiliary .mouse-duo__back img {
+  max-height: 68px;
+  opacity: 0.95;
+}
+
+/* 改键页（含宏定义）：辅助展示，不抢操作区 */
+.mouse-duo--keys {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.35rem 0.4rem;
+  gap: 2px;
+}
+
+.mouse-duo--keys .mouse-duo__front img {
+  max-height: min(156px, 24vh);
+}
+
+.mouse-duo--keys .mouse-duo__back img {
+  max-height: min(132px, 20vh);
+  opacity: 0.95;
+}
