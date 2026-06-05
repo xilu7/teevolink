@@ -39,15 +39,17 @@ const chips = computed(() => {
       <span v-else-if="status?.ready" class="side-dot on" title="已连接" />
     </header>
 
-    <ul v-if="chips.length" class="side-stats">
-      <li v-for="(row, i) in chips" :key="i" class="side-stat" :class="{ accent: row.accent }">
-        <span class="stat-label">{{ row.label }}</span>
-        <span class="stat-value" :class="{ live: row.live }">{{ row.value }}</span>
-      </li>
-    </ul>
+    <div class="side-body">
+      <ul v-if="chips.length" class="side-stats">
+        <li v-for="(row, i) in chips" :key="i" class="side-stat" :class="{ accent: row.accent }">
+          <span class="stat-label">{{ row.label }}</span>
+          <span class="stat-value" :class="{ live: row.live }">{{ row.value }}</span>
+        </li>
+      </ul>
 
-    <div class="side-mouse">
-      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
+      <div class="side-mouse">
+        <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
+      </div>
     </div>
   </div>
 </template>
@@ -57,9 +59,17 @@ const chips = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.65rem;
+  gap: 0.5rem;
   width: 100%;
-  height: 100%;
+  min-height: 0;
+}
+
+.side-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 38%);
+  gap: 0.45rem;
+  align-items: center;
+  flex: 1;
   min-height: 0;
 }
 .side-head {
@@ -128,18 +138,22 @@ const chips = computed(() => {
   color: var(--ac);
 }
 .side-mouse {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem 0 0;
-  margin-top: auto;
+  height: 108px;
+  padding: 0.2rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg2) 65%, var(--bg));
+  border: 1px solid var(--bd);
 }
 .side-mouse img {
-  width: 100%;
-  max-width: 168px;
-  max-height: min(120px, 18vh);
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100px;
   object-fit: contain;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.14));
+  object-position: center;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.14));
 }
 </style>

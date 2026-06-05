@@ -212,7 +212,8 @@
 
 .perf-visual-side {
   grid-column: 3;
-  grid-row: 2 / 4;
+  /* 仅与 DPI、LOD 同行，底部与左侧两卡对齐，不延伸到传感器行 */
+  grid-row: 2 / 3;
   padding: 0.75rem 0.7rem;
   border-radius: var(--radius-panel);
   border: 1px solid var(--bd);
@@ -223,8 +224,7 @@
   justify-content: flex-start;
   min-height: 0;
   align-self: stretch;
-  height: 100%;
-  max-height: 100%;
+  overflow: hidden;
 }
 
 .perf-sensor-panel {
