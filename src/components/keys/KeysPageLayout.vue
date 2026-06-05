@@ -80,20 +80,23 @@ provide(KEYS_PAGE_KEY, {
         <div class="keys-hero-wrap">
           <KeysMouseHero />
         </div>
-        <nav class="keys-mode-bar" aria-label="映射模式">
-          <button
-            v-for="m in modes"
-            :key="m.id"
-            type="button"
-            class="keys-mode-tab"
-            :class="{ active: mode === m.id }"
-            @click="mode = m.id"
-          >
-            {{ m.label }}
-          </button>
-        </nav>
       </div>
     </section>
+
+    <nav class="keys-mode-bridge" aria-label="映射模式">
+      <div class="keys-mode-seg">
+        <button
+          v-for="m in modes"
+          :key="m.id"
+          type="button"
+          class="keys-mode-tab"
+          :class="{ active: mode === m.id }"
+          @click="mode = m.id"
+        >
+          {{ m.label }}
+        </button>
+      </div>
+    </nav>
 
     <div class="keys-panel-slot">
       <div class="keys-panel-inner">

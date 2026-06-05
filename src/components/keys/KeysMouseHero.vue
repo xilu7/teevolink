@@ -19,20 +19,25 @@ const spot = computed(() => HOTSPOTS[selectedBtn.value] ?? HOTSPOTS[0]);
 </script>
 
 <template>
-  <div class="keys-hero-stage">
-    <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro" loading="lazy" />
-    <span
-      class="keys-hero-hotspot"
-      :style="{ left: `${spot.left}%`, top: `${spot.top}%` }"
-    />
-    <span
-      class="keys-hero-tag"
-      :style="{
-        left: `calc(${spot.left}% + ${spot.tagDx}px)`,
-        top: `calc(${spot.top}% + ${spot.tagDy}px)`,
-      }"
-    >
-      {{ selectedLabel }}
-    </span>
+  <div class="keys-hero-dual">
+    <div class="keys-hero-stage keys-hero-stage--front">
+      <img :src="BRAND_ASSETS.mouseFront" alt="Terra Pro 正面" loading="lazy" />
+      <span
+        class="keys-hero-hotspot"
+        :style="{ left: `${spot.left}%`, top: `${spot.top}%` }"
+      />
+      <span
+        class="keys-hero-tag"
+        :style="{
+          left: `calc(${spot.left}% + ${spot.tagDx}px)`,
+          top: `calc(${spot.top}% + ${spot.tagDy}px)`,
+        }"
+      >
+        {{ selectedLabel }}
+      </span>
+    </div>
+    <figure class="keys-hero-stage keys-hero-stage--back">
+      <img :src="BRAND_ASSETS.mouseBack" alt="Terra Pro 底面" loading="lazy" />
+    </figure>
   </div>
 </template>
