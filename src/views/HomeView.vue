@@ -6,6 +6,7 @@ import { syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import HomeDeviceCard from "@/components/home/HomeDeviceCard.vue";
 import HomeConnectGuide from "@/components/home/HomeConnectGuide.vue";
+import UiDiagPanel from "@/components/debug/UiDiagPanel.vue";
 
 const router = useRouter();
 const {
@@ -120,6 +121,8 @@ function openSettings() {
         </button>
       </p>
     </main>
+
+    <UiDiagPanel page="首页" />
   </div>
 </template>
 

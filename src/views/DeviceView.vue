@@ -8,6 +8,7 @@ import PerformanceTab from "@/components/tabs/PerformanceTab.vue";
 import ButtonsTab from "@/components/tabs/ButtonsTab.vue";
 import DeviceTab from "@/components/tabs/DeviceTab.vue";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
+import UiDiagPanel from "@/components/debug/UiDiagPanel.vue";
 import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
 import { useConnectionDisplay } from "@/composables/useConnectionDisplay.js";
 
@@ -353,6 +354,11 @@ async function onPair() {
     <Transition name="toast">
       <div v-if="feedback" class="feedback-toast" role="status">{{ feedback }}</div>
     </Transition>
+
+    <UiDiagPanel
+      page="设备页"
+      :extra="{ tab, booting, refreshing, showConnectBanner }"
+    />
   </div>
 </template>
 
