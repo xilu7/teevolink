@@ -75,6 +75,9 @@ export const PRODUCT = {
 
   maxReportRate: 8000,
 
+  /** 传感器 20K 模式（SDK Set_MS_SensorFPS20K；需固件支持 EEPROM 0xE1） */
+  sensorFps20k: true,
+
   /**
    * PAW3950 LOD（与接收器屏「1MM」及 SDK 一致）
    * 1 → 1 mm，2 → 2 mm，3 → 0.7 mm

@@ -252,6 +252,15 @@ async function setAngle(on) {
 
 }
 
+async function setFps20k(on) {
+  await run(
+    () => HID.Set_MS_SensorFPS20K(on ? 1 : 0),
+    on ? "20K 帧率已开启" : "20K 帧率已关闭"
+  );
+}
+
+const fps20kOn = computed(() => !!sensor.value.fps20k);
+
 </script>
 
 
@@ -499,6 +508,36 @@ async function setAngle(on) {
               :checked="sensor.angle"
 
               @change="setAngle($event.target.checked)"
+
+            />
+
+            <span class="switch-ui" aria-hidden="true" />
+
+          </label>
+
+        </div>
+
+        <div v-if="PRODUCT.sensorFps20k" class="sensor-toggle-card">
+
+          <div class="sensor-toggle-text">
+
+            <span class="title">20K 帧率</span>
+
+            <span class="sub">传感器高采样模式，可能增加功耗</span>
+
+          </div>
+
+          <label class="switch-wrap">
+
+            <input
+
+              type="checkbox"
+
+              :checked="fps20kOn"
+
+              :disabled="!isReady"
+
+              @change="setFps20k($event.target.checked)"
 
             />
 
