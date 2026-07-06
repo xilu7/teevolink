@@ -5,8 +5,8 @@ import { computed, inject, ref, watch } from "vue";
 import { useDevice } from "@/composables/useDevice.js";
 
 import { useHidAction } from "@/composables/useHidAction.js";
-import { writeMouseDpi } from "@/composables/useDpiWrite.js";
-import { getDpiStageIndex, getDpiStageLabel } from "@/composables/useDpiStageIndex.js";
+import { writeMouseDpi, writeMouseDpiXY } from "@/composables/useDpiWrite.js";
+import { getDpiStageIndex } from "@/composables/useDpiStageIndex.js";
 
 import { PRODUCT } from "@/config/terra-pro.js";
 
@@ -73,12 +73,42 @@ const stageDpisFromDevice = computed(() =>
 );
 
 const stageEdits = ref([...PRODUCT.defaultDpiPresets]);
+const stageEditsY = ref([...PRODUCT.defaultDpiPresets]);
+const xyIndependent = ref(false);
 
 /** 当前档正在编辑时的统一数值：滑条与顶部大数字以此为准 */
 const fineDraft = ref(null);
+const fineDraftY = ref(null);
+
+const activeDpiEntry = computed(() => {
+  const i = currentStageIndex.value;
+  return mouseCfg.value.dpis[i] || { value: 0, x: 0, y: 0 };
+});
+
+const activeDpiX = computed(() => activeDpiEntry.value.x ?? activeDpiEntry.value.value ?? 0);
+const activeDpiY = computed(() => {
+  const y = activeDpiEntry.value.y;
+  return y != null && y > 0 ? y : activeDpiX.value;
+});
 
 const heroDpi = computed(() =>
   fineDraft.value != null ? fineDraft.value : activeDpi.value
+);
+
+const heroDpiY = computed(() =>
+  fineDraftY.value != null ? fineDraftY.value : activeDpiY.value
+);
+
+/** 各档 Flash 中的 Y DPI */
+const stageDpisYFromDevice = computed(() =>
+  Array.from({ length: STAGE_COUNT }, (_, i) => {
+    const d = mouseCfg.value.dpis[i];
+    const y = d?.y;
+    const x = d?.value ?? d?.x;
+    if (y != null && y > 0) return y;
+    if (x != null && x > 0) return x;
+    return PRODUCT.defaultDpiPresets[i] ?? DPI_MIN;
+  })
 );
 
 watch(
@@ -94,9 +124,22 @@ watch(
 );
 
 watch(
-  () => [activeDpi.value, currentStageIndex.value],
+  stageDpisYFromDevice,
+  (vals) => {
+    const cur = currentStageIndex.value;
+    stageEditsY.value = vals.map((v, i) => {
+      if (i === cur && fineDraftY.value != null) return fineDraftY.value;
+      return v;
+    });
+  },
+  { immediate: true }
+);
+
+watch(
+  () => [activeDpi.value, activeDpiY.value, currentStageIndex.value],
   () => {
     fineDraft.value = null;
+    fineDraftY.value = null;
   }
 );
 
@@ -159,38 +202,60 @@ async function selectStage(index) {
   );
 }
 
+function dpiYForSave(index) {
+  if (index === currentStageIndex.value) {
+    return clampDpi(fineDraftY.value ?? stageEditsY.value[index] ?? activeDpiY.value);
+  }
+  return clampDpi(stageEditsY.value[index]);
+}
+
 async function saveStageSlot(index) {
-  const dpi = dpiForSave(index);
-  stageEdits.value[index] = dpi;
-  if (index === currentStageIndex.value) fineDraft.value = dpi;
+  const dpiX = dpiForSave(index);
+  const dpiY = xyIndependent.value ? dpiYForSave(index) : dpiX;
+  stageEdits.value[index] = dpiX;
+  stageEditsY.value[index] = dpiY;
+  if (index === currentStageIndex.value) {
+    fineDraft.value = dpiX;
+    fineDraftY.value = dpiY;
+  }
   const applyStage = stageIsActive(index);
+  const label = xyIndependent.value ? `${dpiX}×${dpiY}` : `${dpiX}`;
   await run(
     async () => {
-      const r = await writeMouseDpi(index, dpi, { applyStage });
+      const r = xyIndependent.value
+        ? await writeMouseDpiXY(index, dpiX, dpiY, { applyStage })
+        : await writeMouseDpi(index, dpiX, { applyStage });
       if (!r.ok) {
         console.warn("writeMouseDpi", r);
         return false;
       }
       return true;
     },
-    `第 ${index + 1} 档已保存 ${dpi} DPI`,
+    `第 ${index + 1} 档已保存 ${label} DPI`,
     "DPI 写入失败，请打开 /diag/dpi 诊断"
   );
 }
 
 async function saveFineToCurrentStage() {
   const idx = currentStageIndex.value;
-  const dpi = dpiForSave(idx);
-  fineDraft.value = dpi;
-  stageEdits.value[idx] = dpi;
+  const dpiX = dpiForSave(idx);
+  const dpiY = xyIndependent.value ? dpiYForSave(idx) : dpiX;
+  fineDraft.value = dpiX;
+  fineDraftY.value = dpiY;
+  stageEdits.value[idx] = dpiX;
+  stageEditsY.value[idx] = dpiY;
+  const label = xyIndependent.value ? `${dpiX}×${dpiY}` : `${dpiX}`;
   await run(
     async () => {
-      const r = await writeMouseDpi(idx, dpi);
+      const r = xyIndependent.value
+        ? await writeMouseDpiXY(idx, dpiX, dpiY)
+        : await writeMouseDpi(idx, dpiX);
       if (!r.ok) return false;
       fineDraft.value = null;
+      fineDraftY.value = null;
       return true;
     },
-    `当前档已保存 ${dpi} DPI`,
+    `当前档已保存 ${label} DPI`,
     "DPI 写入失败，请打开 /diag/dpi 诊断"
   );
 }
@@ -201,13 +266,33 @@ function onStageInput(index, raw) {
   stageEdits.value[index] = dpi;
   if (stageIsActive(index)) {
     fineDraft.value = dpi;
+    if (!xyIndependent.value) {
+      fineDraftY.value = dpi;
+      stageEditsY.value[index] = dpi;
+    }
   }
+}
+
+function onStageInputY(index, raw) {
+  const dpi = clampDpi(raw);
+  stageEditsY.value[index] = dpi;
+  if (stageIsActive(index)) fineDraftY.value = dpi;
 }
 
 function onSliderInput(v) {
   const dpi = clampDpi(v);
   fineDraft.value = dpi;
   stageEdits.value[currentStageIndex.value] = dpi;
+  if (!xyIndependent.value) {
+    fineDraftY.value = dpi;
+    stageEditsY.value[currentStageIndex.value] = dpi;
+  }
+}
+
+function onSliderInputY(v) {
+  const dpi = clampDpi(v);
+  fineDraftY.value = dpi;
+  stageEditsY.value[currentStageIndex.value] = dpi;
 }
 
 
@@ -317,28 +402,69 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 
 
 
-    <section class="panel-compact panel-equal">
+    <section class="panel-compact panel-equal dpi-panel">
 
-      <header class="panel-compact-head">
+      <header class="panel-compact-head dpi-panel-head">
 
         <h3>DPI</h3>
 
+        <label class="dpi-xy-toggle">
+          <span class="dpi-xy-toggle-label">X/Y 独立</span>
+          <span class="switch-wrap switch-wrap-sm">
+            <input v-model="xyIndependent" type="checkbox" />
+            <span class="switch-ui" aria-hidden="true" />
+          </span>
+        </label>
+
       </header>
 
-      <div class="dpi-hero-num">
+      <div v-if="!xyIndependent" class="dpi-hero-num">
         <strong>{{ heroDpi }}</strong>
       </div>
+      <div v-else class="dpi-hero-dual">
+        <div class="dpi-hero-axis">
+          <span class="axis-tag">X</span>
+          <strong>{{ heroDpi }}</strong>
+        </div>
+        <div class="dpi-hero-axis">
+          <span class="axis-tag">Y</span>
+          <strong>{{ heroDpiY }}</strong>
+        </div>
+      </div>
 
-      <div class="dpi-stage-grid">
+      <div class="dpi-stage-grid" :class="{ 'dpi-stage-grid--xy': xyIndependent }">
         <div
           v-for="row in stageRows"
           :key="row.index"
           class="dpi-stage-card"
-          :class="{ active: stageIsActive(row.index) }"
+          :class="{ active: stageIsActive(row.index), 'dpi-stage-card--xy': xyIndependent }"
           @click="selectStage(row.index)"
         >
           <span class="dpi-stage-label">档{{ row.stage }}</span>
+          <div v-if="xyIndependent && stageIsActive(row.index)" class="dpi-stage-xy-inputs" @click.stop>
+            <input
+              type="number"
+              class="dpi-stage-input"
+              :min="DPI_MIN"
+              :max="DPI_MAX"
+              :step="DPI_STEP"
+              placeholder="X"
+              :value="heroDpi"
+              @input="onStageInput(row.index, $event.target.value)"
+            />
+            <input
+              type="number"
+              class="dpi-stage-input"
+              :min="DPI_MIN"
+              :max="DPI_MAX"
+              :step="DPI_STEP"
+              placeholder="Y"
+              :value="heroDpiY"
+              @input="onStageInputY(row.index, $event.target.value)"
+            />
+          </div>
           <input
+            v-else
             type="number"
             class="dpi-stage-input"
             :min="DPI_MIN"
@@ -356,11 +482,20 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
           >
             保存
           </button>
+          <span
+            v-if="xyIndependent && !stageIsActive(row.index) && stageEdits[row.index] !== stageEditsY[row.index]"
+            class="dpi-stage-xy-hint"
+          >
+            Y {{ stageEditsY[row.index] }}
+          </span>
         </div>
       </div>
 
       <div class="compact-slider dpi-fine-block">
-        <label><span>精细调节</span><span>{{ heroDpi }}</span></label>
+        <label>
+          <span>{{ xyIndependent ? "X 轴精细调节" : "精细调节" }}</span>
+          <span>{{ heroDpi }}</span>
+        </label>
         <input
           :value="heroDpi"
           type="range"
@@ -370,6 +505,21 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
           :disabled="!isReady"
           @input="onSliderInput($event.target.value)"
         />
+        <template v-if="xyIndependent">
+          <label class="dpi-y-slider-label">
+            <span>Y 轴精细调节</span>
+            <span>{{ heroDpiY }}</span>
+          </label>
+          <input
+            :value="heroDpiY"
+            type="range"
+            :min="DPI_MIN"
+            :max="DPI_MAX"
+            :step="DPI_STEP"
+            :disabled="!isReady"
+            @input="onSliderInputY($event.target.value)"
+          />
+        </template>
         <button
           type="button"
           class="dpi-save-current"
@@ -606,6 +756,61 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 .dpi-hero-num span {
   display: none;
 }
+.dpi-panel-head {
+  align-items: center;
+}
+.dpi-xy-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  margin-left: auto;
+}
+.dpi-xy-toggle-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--tx3);
+  white-space: nowrap;
+}
+.switch-wrap-sm .switch-ui {
+  width: 36px;
+  height: 20px;
+}
+.switch-wrap-sm .switch-ui::after {
+  width: 14px;
+  height: 14px;
+  top: 3px;
+  left: 3px;
+}
+.switch-wrap-sm input:checked + .switch-ui::after {
+  transform: translateX(16px);
+}
+.dpi-hero-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+.dpi-hero-axis {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: var(--bg2, #f5f5f5);
+}
+.dpi-hero-axis .axis-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--tx3);
+}
+.dpi-hero-axis strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--acd);
+  line-height: 1;
+}
 .dpi-stage-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -626,6 +831,25 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 .dpi-stage-card.active {
   border-color: var(--acd);
   background: color-mix(in srgb, var(--acd) 12%, transparent);
+}
+.dpi-stage-card--xy.active {
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+}
+.dpi-stage-xy-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.dpi-stage-xy-hint {
+  grid-column: 2;
+  font-size: 0.58rem;
+  color: var(--tx3);
+  line-height: 1.2;
+}
+.dpi-y-slider-label {
+  margin-top: 0.35rem;
 }
 .dpi-stage-label {
   font-size: 0.62rem;
