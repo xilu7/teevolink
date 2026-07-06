@@ -59,15 +59,17 @@ const stageRows = computed(() =>
 
 const activeDpi = computed(() => {
   const i = getDpiStageIndex(mouseCfg.value);
-  return mouseCfg.value.dpis[i]?.value ?? 0;
+  const d = mouseCfg.value.dpis[i];
+  return d?.x ?? d?.value ?? 0;
 });
 
 const currentStageIndex = computed(() => getDpiStageIndex(mouseCfg.value));
 
-/** 各档 Flash 中的 DPI（与接收器一致） */
+/** 各档 Flash 中的 X DPI */
 const stageDpisFromDevice = computed(() =>
   Array.from({ length: STAGE_COUNT }, (_, i) => {
-    const v = mouseCfg.value.dpis[i]?.value;
+    const d = mouseCfg.value.dpis[i];
+    const v = d?.x ?? d?.value;
     return v != null && v > 0 ? v : PRODUCT.defaultDpiPresets[i] ?? DPI_MIN;
   })
 );
@@ -79,6 +81,8 @@ const xyIndependent = ref(false);
 /** 当前档正在编辑时的统一数值：滑条与顶部大数字以此为准 */
 const fineDraft = ref(null);
 const fineDraftY = ref(null);
+/** 正在键盘输入时，避免设备轮询把数字冲掉 */
+const dpiFieldEditing = ref(false);
 
 const activeDpiEntry = computed(() => {
   const i = currentStageIndex.value;
@@ -116,6 +120,7 @@ watch(
   (vals) => {
     const cur = currentStageIndex.value;
     stageEdits.value = vals.map((v, i) => {
+      if (dpiFieldEditing.value && i === cur) return stageEdits.value[i];
       if (i === cur && fineDraft.value != null) return fineDraft.value;
       return v;
     });
@@ -128,6 +133,7 @@ watch(
   (vals) => {
     const cur = currentStageIndex.value;
     stageEditsY.value = vals.map((v, i) => {
+      if (dpiFieldEditing.value && i === cur) return stageEditsY.value[i];
       if (i === cur && fineDraftY.value != null) return fineDraftY.value;
       return v;
     });
@@ -138,10 +144,27 @@ watch(
 watch(
   () => [activeDpi.value, activeDpiY.value, currentStageIndex.value],
   () => {
+    if (dpiFieldEditing.value) return;
     fineDraft.value = null;
     fineDraftY.value = null;
   }
 );
+
+function parseDpiInput(raw, fallback) {
+  const text = String(raw ?? "").trim();
+  if (!text) return fallback;
+  const n = Number(text);
+  if (!Number.isFinite(n)) return fallback;
+  return clampDpi(n);
+}
+
+function markDpiEditing() {
+  dpiFieldEditing.value = true;
+}
+
+function unmarkDpiEditing() {
+  dpiFieldEditing.value = false;
+}
 
 function dpiForSave(index) {
   if (index === currentStageIndex.value) {
@@ -260,9 +283,10 @@ async function saveFineToCurrentStage() {
   );
 }
 
-/** 改当前档数字时同步滑条/大数字；非当前档只改本档输入框 */
-function onStageInput(index, raw) {
-  const dpi = clampDpi(raw);
+/** 数字框：失焦/回车后再对齐 50 步进，避免输入 400 时先变成 50 */
+function onStageChange(index, raw) {
+  unmarkDpiEditing();
+  const dpi = parseDpiInput(raw, stageEdits.value[index]);
   stageEdits.value[index] = dpi;
   if (stageIsActive(index)) {
     fineDraft.value = dpi;
@@ -273,8 +297,9 @@ function onStageInput(index, raw) {
   }
 }
 
-function onStageInputY(index, raw) {
-  const dpi = clampDpi(raw);
+function onStageChangeY(index, raw) {
+  unmarkDpiEditing();
+  const dpi = parseDpiInput(raw, stageEditsY.value[index]);
   stageEditsY.value[index] = dpi;
   if (stageIsActive(index)) fineDraftY.value = dpi;
 }
@@ -418,6 +443,8 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 
       </header>
 
+      <p class="panel-hint dpi-step-hint">DPI 范围 {{ DPI_MIN }}–{{ DPI_MAX }}，步进 {{ DPI_STEP }}</p>
+
       <div v-if="!xyIndependent" class="dpi-hero-num">
         <strong>{{ heroDpi }}</strong>
       </div>
@@ -447,20 +474,24 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
               class="dpi-stage-input"
               :min="DPI_MIN"
               :max="DPI_MAX"
-              :step="DPI_STEP"
+              step="1"
+              inputmode="numeric"
               placeholder="X"
               :value="heroDpi"
-              @input="onStageInput(row.index, $event.target.value)"
+              @focus="markDpiEditing"
+              @change="onStageChange(row.index, $event.target.value)"
             />
             <input
               type="number"
               class="dpi-stage-input"
               :min="DPI_MIN"
               :max="DPI_MAX"
-              :step="DPI_STEP"
+              step="1"
+              inputmode="numeric"
               placeholder="Y"
               :value="heroDpiY"
-              @input="onStageInputY(row.index, $event.target.value)"
+              @focus="markDpiEditing"
+              @change="onStageChangeY(row.index, $event.target.value)"
             />
           </div>
           <input
@@ -469,10 +500,12 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
             class="dpi-stage-input"
             :min="DPI_MIN"
             :max="DPI_MAX"
-            :step="DPI_STEP"
+            step="1"
+            inputmode="numeric"
             :value="stageIsActive(row.index) ? heroDpi : stageEdits[row.index]"
             @click.stop
-            @input="onStageInput(row.index, $event.target.value)"
+            @focus="markDpiEditing"
+            @change="onStageChange(row.index, $event.target.value)"
           />
           <button
             type="button"
@@ -752,6 +785,10 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 .panel-grow-end {
   margin-top: auto;
   padding-top: 0.35rem;
+}
+.dpi-step-hint {
+  margin-top: -0.25rem;
+  margin-bottom: 0.45rem;
 }
 .dpi-hero-num span {
   display: none;
