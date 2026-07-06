@@ -83,6 +83,8 @@ const fineDraft = ref(null);
 const fineDraftY = ref(null);
 /** 正在键盘输入时，避免设备轮询把数字冲掉 */
 const dpiFieldEditing = ref(false);
+/** 已改未保存时，整页 DPI 区不再被设备读数覆盖 */
+const dpiDirty = ref(false);
 
 const activeDpiEntry = computed(() => {
   const i = currentStageIndex.value;
@@ -95,13 +97,25 @@ const activeDpiY = computed(() => {
   return y != null && y > 0 ? y : activeDpiX.value;
 });
 
-const heroDpi = computed(() =>
-  fineDraft.value != null ? fineDraft.value : activeDpi.value
-);
+function stageUiLocked(index) {
+  const cur = currentStageIndex.value;
+  if (index !== cur) return false;
+  return dpiDirty.value || dpiFieldEditing.value;
+}
 
-const heroDpiY = computed(() =>
-  fineDraftY.value != null ? fineDraftY.value : activeDpiY.value
-);
+const heroDpi = computed(() => {
+  const cur = currentStageIndex.value;
+  if (stageUiLocked(cur)) return stageEdits.value[cur];
+  if (fineDraft.value != null) return fineDraft.value;
+  return activeDpi.value;
+});
+
+const heroDpiY = computed(() => {
+  const cur = currentStageIndex.value;
+  if (stageUiLocked(cur)) return stageEditsY.value[cur];
+  if (fineDraftY.value != null) return fineDraftY.value;
+  return activeDpiY.value;
+});
 
 /** 各档 Flash 中的 Y DPI */
 const stageDpisYFromDevice = computed(() =>
@@ -120,8 +134,7 @@ watch(
   (vals) => {
     const cur = currentStageIndex.value;
     stageEdits.value = vals.map((v, i) => {
-      if (dpiFieldEditing.value && i === cur) return stageEdits.value[i];
-      if (i === cur && fineDraft.value != null) return fineDraft.value;
+      if (stageUiLocked(i)) return stageEdits.value[i];
       return v;
     });
   },
@@ -133,8 +146,7 @@ watch(
   (vals) => {
     const cur = currentStageIndex.value;
     stageEditsY.value = vals.map((v, i) => {
-      if (dpiFieldEditing.value && i === cur) return stageEditsY.value[i];
-      if (i === cur && fineDraftY.value != null) return fineDraftY.value;
+      if (stageUiLocked(i)) return stageEditsY.value[i];
       return v;
     });
   },
@@ -144,18 +156,17 @@ watch(
 watch(
   () => [activeDpi.value, activeDpiY.value, currentStageIndex.value],
   () => {
-    if (dpiFieldEditing.value) return;
+    if (dpiFieldEditing.value || dpiDirty.value) return;
     fineDraft.value = null;
     fineDraftY.value = null;
   }
 );
 
-function parseDpiInput(raw, fallback) {
-  const text = String(raw ?? "").trim();
-  if (!text) return fallback;
-  const n = Number(text);
-  if (!Number.isFinite(n)) return fallback;
-  return clampDpi(n);
+function clampDpi(dpi) {
+  const n = Number(dpi);
+  if (!Number.isFinite(n)) return DPI_MIN;
+  const snapped = Math.round(n / DPI_STEP) * DPI_STEP;
+  return Math.min(DPI_MAX, Math.max(DPI_MIN, snapped));
 }
 
 function markDpiEditing() {
@@ -166,18 +177,59 @@ function unmarkDpiEditing() {
   dpiFieldEditing.value = false;
 }
 
+function markDpiDirty() {
+  dpiDirty.value = true;
+}
+
+function clearDpiDirty() {
+  dpiDirty.value = false;
+  fineDraft.value = null;
+  fineDraftY.value = null;
+}
+
+/** 输入过程中只记数字，失焦再对齐 50 步进；未保存前不被设备读数覆盖 */
+function onStageRawInput(index, axis, raw) {
+  markDpiEditing();
+  markDpiDirty();
+  const text = String(raw ?? "").trim();
+  if (!text) return;
+  const n = Number(text);
+  if (!Number.isFinite(n)) return;
+  if (axis === "x") {
+    stageEdits.value[index] = n;
+    if (stageIsActive(index)) fineDraft.value = n;
+    if (!xyIndependent.value) {
+      stageEditsY.value[index] = n;
+      if (stageIsActive(index)) fineDraftY.value = n;
+    }
+  } else {
+    stageEditsY.value[index] = n;
+    if (stageIsActive(index)) fineDraftY.value = n;
+  }
+}
+
+function onStageBlur(index, axis) {
+  unmarkDpiEditing();
+  if (axis === "x") {
+    const dpi = clampDpi(stageEdits.value[index]);
+    stageEdits.value[index] = dpi;
+    if (stageIsActive(index)) fineDraft.value = dpi;
+    if (!xyIndependent.value) {
+      stageEditsY.value[index] = dpi;
+      if (stageIsActive(index)) fineDraftY.value = dpi;
+    }
+  } else {
+    const dpi = clampDpi(stageEditsY.value[index]);
+    stageEditsY.value[index] = dpi;
+    if (stageIsActive(index)) fineDraftY.value = dpi;
+  }
+}
+
 function dpiForSave(index) {
   if (index === currentStageIndex.value) {
     return clampDpi(fineDraft.value ?? stageEdits.value[index] ?? activeDpi.value);
   }
   return clampDpi(stageEdits.value[index]);
-}
-
-function clampDpi(dpi) {
-  const n = Number(dpi);
-  if (!Number.isFinite(n)) return DPI_MIN;
-  const snapped = Math.round(n / DPI_STEP) * DPI_STEP;
-  return Math.min(DPI_MAX, Math.max(DPI_MIN, snapped));
 }
 
 const reportRate = computed(() => mouseCfg.value.reportRate);
@@ -216,6 +268,7 @@ function stageIsActive(index) {
 
 async function selectStage(index) {
   if (stageIsActive(index)) return;
+  clearDpiDirty();
   await run(
     async () => {
       const ok = await HID.Set_MS_CurrentDPI(index);
@@ -252,6 +305,7 @@ async function saveStageSlot(index) {
         console.warn("writeMouseDpi", r);
         return false;
       }
+      clearDpiDirty();
       return true;
     },
     `第 ${index + 1} 档已保存 ${label} DPI`,
@@ -274,8 +328,7 @@ async function saveFineToCurrentStage() {
         ? await writeMouseDpiXY(idx, dpiX, dpiY)
         : await writeMouseDpi(idx, dpiX);
       if (!r.ok) return false;
-      fineDraft.value = null;
-      fineDraftY.value = null;
+      clearDpiDirty();
       return true;
     },
     `当前档已保存 ${label} DPI`,
@@ -283,28 +336,8 @@ async function saveFineToCurrentStage() {
   );
 }
 
-/** 数字框：失焦/回车后再对齐 50 步进，避免输入 400 时先变成 50 */
-function onStageChange(index, raw) {
-  unmarkDpiEditing();
-  const dpi = parseDpiInput(raw, stageEdits.value[index]);
-  stageEdits.value[index] = dpi;
-  if (stageIsActive(index)) {
-    fineDraft.value = dpi;
-    if (!xyIndependent.value) {
-      fineDraftY.value = dpi;
-      stageEditsY.value[index] = dpi;
-    }
-  }
-}
-
-function onStageChangeY(index, raw) {
-  unmarkDpiEditing();
-  const dpi = parseDpiInput(raw, stageEditsY.value[index]);
-  stageEditsY.value[index] = dpi;
-  if (stageIsActive(index)) fineDraftY.value = dpi;
-}
-
 function onSliderInput(v) {
+  markDpiDirty();
   const dpi = clampDpi(v);
   fineDraft.value = dpi;
   stageEdits.value[currentStageIndex.value] = dpi;
@@ -315,6 +348,7 @@ function onSliderInput(v) {
 }
 
 function onSliderInputY(v) {
+  markDpiDirty();
   const dpi = clampDpi(v);
   fineDraftY.value = dpi;
   stageEditsY.value[currentStageIndex.value] = dpi;
@@ -443,7 +477,11 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 
       </header>
 
-      <p class="panel-hint dpi-step-hint">DPI 范围 {{ DPI_MIN }}–{{ DPI_MAX }}，步进 {{ DPI_STEP }}</p>
+      <p class="panel-hint dpi-step-hint">DPI 范围 {{ DPI_MIN }}–{{ DPI_MAX }}，步进 {{ DPI_STEP }}。改完务必点「保存」。</p>
+      <p v-if="dpiDirty" class="panel-hint dpi-dirty-hint">
+        当前 DPI 已修改、尚未写入鼠标。若数字自己跳变，先点保存；仍不对请打开
+        <router-link to="/diag/dpi">DPI 诊断页</router-link>。
+      </p>
 
       <div v-if="!xyIndependent" class="dpi-hero-num">
         <strong>{{ heroDpi }}</strong>
@@ -477,9 +515,10 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
               step="1"
               inputmode="numeric"
               placeholder="X"
-              :value="heroDpi"
+              :value="stageEdits[row.index]"
               @focus="markDpiEditing"
-              @change="onStageChange(row.index, $event.target.value)"
+              @input="onStageRawInput(row.index, 'x', $event.target.value)"
+              @blur="onStageBlur(row.index, 'x')"
             />
             <input
               type="number"
@@ -489,9 +528,10 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
               step="1"
               inputmode="numeric"
               placeholder="Y"
-              :value="heroDpiY"
+              :value="stageEditsY[row.index]"
               @focus="markDpiEditing"
-              @change="onStageChangeY(row.index, $event.target.value)"
+              @input="onStageRawInput(row.index, 'y', $event.target.value)"
+              @blur="onStageBlur(row.index, 'y')"
             />
           </div>
           <input
@@ -502,10 +542,11 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
             :max="DPI_MAX"
             step="1"
             inputmode="numeric"
-            :value="stageIsActive(row.index) ? heroDpi : stageEdits[row.index]"
+            :value="stageEdits[row.index]"
             @click.stop
             @focus="markDpiEditing"
-            @change="onStageChange(row.index, $event.target.value)"
+            @input="onStageRawInput(row.index, 'x', $event.target.value)"
+            @blur="onStageBlur(row.index, 'x')"
           />
           <button
             type="button"
@@ -785,6 +826,14 @@ const fps20kOn = computed(() => !!sensor.value.fps20k);
 .panel-grow-end {
   margin-top: auto;
   padding-top: 0.35rem;
+}
+.dpi-dirty-hint {
+  color: var(--acd);
+  font-weight: 600;
+}
+.dpi-dirty-hint a {
+  color: inherit;
+  text-decoration: underline;
 }
 .dpi-step-hint {
   margin-top: -0.25rem;

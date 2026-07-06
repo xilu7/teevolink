@@ -2,9 +2,10 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import HID from "@/sdk/dev_HIDHandle_05_27.js";
+import { BUILD_TAG } from "@/config/build.js";
 import { HID_FILTERS, PRODUCT } from "@/config/terra-pro.js";
 import { ensureSensorConfig, syncDpiSensorFromFlash } from "@/composables/useSensorCatalog.js";
-import { writeMouseDpi } from "@/composables/useDpiWrite.js";
+import { writeMouseDpi, writeMouseDpiXY } from "@/composables/useDpiWrite.js";
 import { getDpiStageLabel } from "@/composables/useDpiStageIndex.js";
 import DriverAppTopbar from "@/components/layout/DriverAppTopbar.vue";
 import { useDevice } from "@/composables/useDevice.js";
@@ -15,7 +16,6 @@ const logs = ref([]);
 const running = ref(false);
 
 const REPORT_ID = 0x08;
-const BUILD = "2026-06-04-u";
 
 const ADDR = {
   maxStage: 0x02,
@@ -23,6 +23,8 @@ const ADDR = {
   dpi0: 0x0c,
   sensor3955: 0x1b00,
 };
+
+const PROBE_VALUES = [400, 800, 1100, 1200, 1500, 1600, 3200];
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -64,7 +66,31 @@ function flashSlice(addr, len) {
   return parts.join(" ");
 }
 
-/** 与连接诊断一致：不因 online=false 就退出，而是 Device_Connect 并等待 Connected */
+function decode3950Stage(index) {
+  const addr = ADDR.dpi0 + index * 4;
+  const b0 = HID.flashData[addr];
+  const b1 = HID.flashData[addr + 1];
+  const b2 = HID.flashData[addr + 2];
+  const exX = b2 & 0x03;
+  const exY = (b2 >> 4) & 0x03;
+  const hiX = (b2 >> 2) & 0x03;
+  const hiY = (b2 >> 6) & 0x03;
+  const rawX = b0 + (hiX << 8);
+  const rawY = b1 + (hiY << 8);
+  const d = HID.deviceInfo.mouseCfg.dpis[index];
+  return {
+    addr,
+    raw: flashSlice(addr, 4),
+    uiX: d?.x ?? d?.value ?? "?",
+    uiY: d?.y ?? "?",
+    uiVal: d?.value ?? "?",
+    rawX,
+    rawY,
+    exX,
+    exY,
+  };
+}
+
 async function ensureSession() {
   if (!navigator.hid) {
     log("无 Web HID", false);
@@ -102,20 +128,12 @@ async function ensureSession() {
     return false;
   }
 
-  let online = await HID.Get_Current_Device_Online(dev);
-  log(
-    "deviceOpen=true，首次 online=" +
-      online +
-      "（online 为 false 也会继续，请 2.4G 晃动鼠标）",
-    online === true || online === 1
-  );
-
   if (HID.deviceInfo.connectState === HID.DeviceConectState.Connected) {
     await syncDpiSensorFromFlash();
     return true;
   }
 
-  log("Device_Connect（同步参数，约 1 分钟内完成）…");
+  log("Device_Connect（约 1 分钟内）…");
   try {
     await HID.Device_Connect();
   } catch (e) {
@@ -126,51 +144,48 @@ async function ensureSession() {
   for (let i = 1; i <= 60; i++) {
     const st = HID.deviceInfo.connectState;
     if (i === 1 || i % 5 === 0 || st === HID.DeviceConectState.Connected) {
-      if (i % 5 === 0) online = await HID.Get_Current_Device_Online(dev);
-      log(
-        `第 ${i} 秒：${connectStateName(st)}，online=${HID.deviceInfo.online ?? online}`,
-        st === HID.DeviceConectState.Connected
-      );
+      log(`第 ${i} 秒：${connectStateName(st)}`, st === HID.DeviceConectState.Connected);
     }
     if (st === HID.DeviceConectState.Connected) {
-      log("成功：已进入 Connected，可以测 DPI", true);
       await syncDpiSensorFromFlash();
       return true;
     }
     if (st === HID.DeviceConectState.TimeOut) {
-      const detail = HID.deviceInfo.lastSyncError ? `（${HID.deviceInfo.lastSyncError}）` : "";
-      log("失败：TimeOut" + detail, false);
+      log("失败：TimeOut", false);
       return false;
     }
     await sleep(1000);
   }
-  log("60 秒未 Connected：请回设备页点「重新同步」后再来本页", false);
+  log("60 秒未 Connected", false);
   return false;
+}
+
+async function logCurrentState(title = "读取现状") {
+  log(`—— ${title} ——`);
+  const layout = HID.deviceInfo.mouseCfg.sensor.dpiEepromKind || HID.detectDpiEepromType();
+  log(`BUILD=${BUILD_TAG} layout=${layout} sensor=${HID.deviceInfo.mouseCfg.sensor.type}`, true);
+  log(`maxDpiStage=${HID.deviceInfo.mouseCfg.maxDpiStage} currentDpi(raw)=${HID.deviceInfo.mouseCfg.currentDpi} → UI第${getDpiStageLabel(HID.deviceInfo.mouseCfg)}档`);
+
+  for (let i = 0; i < PRODUCT.defaultDpiStageCount; i++) {
+    const s = decode3950Stage(i);
+    log(
+      `档${i + 1} @0x${s.addr.toString(16)} raw=${s.raw} → UI X=${s.uiX} Y=${s.uiY} (value=${s.uiVal})`
+    );
+    if (s.uiX !== s.uiY) {
+      log(`  ↳ X/Y 不同：横向 ${s.uiX} · 纵向 ${s.uiY}`, true);
+    }
+  }
+
+  const a55 = ADDR.sensor3955;
+  log("3955区 档1 raw[6]=" + flashSlice(a55, 6) + "（全 FF 则未用）");
 }
 
 async function runReadReport() {
   logs.value = [];
   running.value = true;
   try {
-    log("—— DPI 诊断（BUILD " + BUILD + "）——");
     if (!(await ensureSession())) return;
-
-    const layout = HID.deviceInfo.mouseCfg.sensor.dpiEepromKind || HID.detectDpiEepromType();
-    log("dpiEepromKind=" + layout + " sensor.type=" + HID.deviceInfo.mouseCfg.sensor.type, true);
-    log("maxDpiStage(Flash)=" + HID.deviceInfo.mouseCfg.maxDpiStage + " 目标=" + PRODUCT.defaultDpiStageCount);
-    log("currentDpi(Flash)=" + HID.deviceInfo.mouseCfg.currentDpi);
-
-    log("EEPROM 0x02 档位数 raw: " + flashSlice(ADDR.maxStage, 2));
-    log("EEPROM 0x04 当前档 raw: " + flashSlice(ADDR.current, 2));
-
-    for (let i = 0; i < PRODUCT.defaultDpiStageCount; i++) {
-      const a = ADDR.dpi0 + i * 4;
-      const v = HID.deviceInfo.mouseCfg.dpis[i]?.value ?? "?";
-      log(`档位 ${i + 1} @0x${a.toString(16)} raw[4]=${flashSlice(a, 4)} → UI ${v} DPI`);
-    }
-
-    const a55 = ADDR.sensor3955;
-    log("3955区 档1 @0x1B00 raw[6]=" + flashSlice(a55, 6) + "（若全 FF 则未用此区）");
+    await logCurrentState("DPI 读取");
   } catch (e) {
     log("异常: " + (e?.message || e), false);
   } finally {
@@ -183,26 +198,90 @@ async function runWriteTest(targetDpi, stageIndex) {
   try {
     if (!(await ensureSession())) return;
     const stage = stageIndex + 1;
-    log(`—— 写入测试：档位 ${stage} → ${targetDpi} DPI ——`);
+    log(`—— 写入测试：档${stage} → ${targetDpi}（统一 X=Y）——`);
     const r = await writeMouseDpi(stageIndex, targetDpi);
     if (!r.ok) {
       log("writeMouseDpi 失败: " + (r.error || ""), false);
       return;
     }
-    log("writeMouseDpi 成功 kind=" + r.kind + " dpi=" + r.dpi, true);
-
-    await new Promise((res) => setTimeout(res, 200));
+    log("写入成功", true);
+    await sleep(200);
     await syncDpiSensorFromFlash();
-    const read = HID.deviceInfo.mouseCfg.dpis[stageIndex]?.value;
-    const cur = HID.deviceInfo.mouseCfg.currentDpi;
-    log(
-      `读回：槽位${stageIndex}(第${stage}档)=${read} DPI，currentDpi(raw)=${cur}，界面第${getDpiStageLabel(HID.deviceInfo.mouseCfg)}档`,
-      read === targetDpi
-    );
-    if (read !== targetDpi) {
-      log("读回不一致：可能写入失败或地址错误", false);
+    const s = decode3950Stage(stageIndex);
+    log(`读回 X=${s.uiX} Y=${s.uiY}`, s.uiX === targetDpi && s.uiY === targetDpi);
+    if (s.uiX !== targetDpi || s.uiY !== targetDpi) {
+      log(`期望 ${targetDpi}，读回不一致 → 可能 Flash 写入或解析有问题`, false);
     }
-    log("请眼看接收器屏幕 DPI 是否变为 " + targetDpi);
+  } catch (e) {
+    log("异常: " + (e?.message || e), false);
+  } finally {
+    running.value = false;
+  }
+}
+
+async function runWriteXYTest(stageIndex, x, y) {
+  running.value = true;
+  try {
+    if (!(await ensureSession())) return;
+    log(`—— X/Y 写入：档${stageIndex + 1} → X=${x} Y=${y} ——`);
+    const r = await writeMouseDpiXY(stageIndex, x, y);
+    if (!r.ok) {
+      log("writeMouseDpiXY 失败: " + (r.error || ""), false);
+      return;
+    }
+    log("写入成功", true);
+    await sleep(200);
+    await syncDpiSensorFromFlash();
+    const s = decode3950Stage(stageIndex);
+    log(`读回 X=${s.uiX} Y=${s.uiY}`, s.uiX === x && s.uiY === y);
+    if (s.uiX !== x || s.uiY !== y) {
+      log(`期望 X=${x} Y=${y}，读回不一致`, false);
+    }
+  } catch (e) {
+    log("异常: " + (e?.message || e), false);
+  } finally {
+    running.value = false;
+  }
+}
+
+/** 一次性探测常见 DPI 能否写进 Flash（在档 4 上测，不影响常用档 1） */
+async function runFullProbe() {
+  logs.value = [];
+  running.value = true;
+  const stageIndex = 3;
+  try {
+    if (!(await ensureSession())) return;
+    await logCurrentState("全面检查 · 开始前");
+    log("—— 开始在档 4 探测写入（400/800/1100/1200/1500/1600/3200）——");
+    let fail = 0;
+    for (const v of PROBE_VALUES) {
+      const r = await writeMouseDpi(stageIndex, v, { applyStage: false });
+      if (!r.ok) {
+        log(`${v} 写入失败: ${r.error}`, false);
+        fail++;
+        continue;
+      }
+      await sleep(150);
+      await syncDpiSensorFromFlash();
+      const s = decode3950Stage(stageIndex);
+      const ok = s.uiX === v && s.uiY === v;
+      log(`${v} → 读回 X=${s.uiX} Y=${s.uiY} raw=${s.raw}`, ok);
+      if (!ok) fail++;
+    }
+    log("—— X/Y 独立：档4 → X=1200 Y=1100 ——");
+    const xy = await writeMouseDpiXY(stageIndex, 1200, 1100, { applyStage: false });
+    if (xy.ok) {
+      await sleep(150);
+      await syncDpiSensorFromFlash();
+      const s = decode3950Stage(stageIndex);
+      log(`读回 X=${s.uiX} Y=${s.uiY}`, s.uiX === 1200 && s.uiY === 1100);
+      if (s.uiX !== 1200 || s.uiY !== 1100) fail++;
+    } else {
+      log("X/Y 写入失败: " + xy.error, false);
+      fail++;
+    }
+    log(fail === 0 ? "全面检查通过 ✓" : `完成：${fail} 项未通过`, fail === 0);
+    log("若网页输入会跳回 1500：先看读回是否正常；读回正常则是 UI 未保存被刷新（已修）；读回也不对则是 Flash/固件问题");
   } catch (e) {
     log("异常: " + (e?.message || e), false);
   } finally {
@@ -216,9 +295,8 @@ async function runFixStages() {
     if (!(await ensureSession())) return;
     log("—— 将档位数设为 " + PRODUCT.defaultDpiStageCount + " ——");
     const ok = await HID.Set_MS_MaxDPI(PRODUCT.defaultDpiStageCount);
-    log("Set_MS_MaxDPI(" + PRODUCT.defaultDpiStageCount + ") → " + ok, ok);
+    log("Set_MS_MaxDPI → " + ok, ok);
     await syncDpiSensorFromFlash();
-    log("刷新后 maxDpiStage=" + HID.deviceInfo.mouseCfg.maxDpiStage, true);
   } catch (e) {
     log("异常: " + (e?.message || e), false);
   } finally {
@@ -239,11 +317,20 @@ async function runFactoryPresets() {
       await sleep(120);
     }
     await syncDpiSensorFromFlash();
-    log("完成，请按鼠标 DPI 键循环确认只有 4 档", true);
+    log("完成", true);
   } catch (e) {
     log("异常: " + (e?.message || e), false);
   } finally {
     running.value = false;
+  }
+}
+
+async function copyLogs() {
+  try {
+    await navigator.clipboard.writeText(logs.value.join("\n"));
+    log("已复制日志到剪贴板", true);
+  } catch {
+    log("复制失败", false);
   }
 }
 </script>
@@ -252,23 +339,31 @@ async function runFactoryPresets() {
   <div class="driver-shell diag-page">
     <DriverAppTopbar logo-size="sm" @disconnect="disconnect" />
     <main class="container">
-      <h1>DPI 专项诊断</h1>
+      <h1>DPI 全面诊断</h1>
       <p class="lead">
-        Terra Pro 使用 <strong>3950·0x0C</strong> 存储。请 2.4G 开机并<strong>晃动鼠标</strong>，点「1」后会自动连接（约 1 分钟），看到日志里 <strong>Connected</strong> 再点 2～4。
+        Terra Pro 使用 <strong>3950 · 0x0C</strong>。2.4G 唤醒鼠标后点
+        <strong>「一键全面检查」</strong>，会自动测 400/1100/1200/1500 等能否写进 Flash，并测 X/Y 独立写入。
       </p>
       <div class="btn-row">
-        <button type="button" class="btn-diag" :disabled="running" @click="runReadReport">1. 读取现状</button>
-        <button type="button" class="btn-diag" :disabled="running" @click="runWriteTest(800, 0)">2. 写档位1=800</button>
-        <button type="button" class="btn-diag" :disabled="running" @click="runWriteTest(1600, 2)">3. 写档位3=1600</button>
-        <button type="button" class="btn-diag" :disabled="running" @click="runFixStages">4. 修正为4档</button>
-        <button type="button" class="btn-diag" :disabled="running" @click="runFactoryPresets">5. 写入出厂四档</button>
+        <button type="button" class="btn-diag btn-primary" :disabled="running" @click="runFullProbe">
+          一键全面检查
+        </button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runReadReport">读取现状</button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runWriteTest(1200, 2)">写档3=1200</button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runWriteXYTest(2, 1600, 1500)">
+          写档3 X=1600 Y=1500
+        </button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runFixStages">修正4档</button>
+        <button type="button" class="btn-diag" :disabled="running" @click="runFactoryPresets">恢复出厂四档</button>
+        <button type="button" class="btn-diag" :disabled="!logs.length" @click="copyLogs">复制日志</button>
       </div>
       <pre class="log-box">{{ logs.join("\n") || "等待开始…" }}</pre>
       <p class="hint">
-        <router-link to="/diag">通用连接诊断</router-link>
+        BUILD <strong>{{ BUILD_TAG }}</strong>
+        ·
+        <router-link to="/diag">连接诊断</router-link>
         ·
         <router-link to="/device">返回设备页</router-link>
-        · 版本应为 <strong>2026-06-04-u</strong>（日志 BUILD 行可见）
       </p>
     </main>
   </div>
@@ -303,6 +398,11 @@ h1 {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+}
+.btn-diag.btn-primary {
+  background: var(--ac);
+  border-color: var(--ac);
+  color: #fff;
 }
 .btn-diag:disabled {
   opacity: 0.5;
