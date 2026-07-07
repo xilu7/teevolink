@@ -6,6 +6,10 @@ import {
   buildBasicFunctions,
   parseKeyEntry,
 } from "@/config/mouse-key-functions.js";
+import {
+  wouldRetainLeftButton,
+  LEFT_BUTTON_GUARD_MSG,
+} from "@/utils/keyRemapGuard.js";
 import { KEYS_PAGE_KEY } from "./keys-context.js";
 import KeysMouseHero from "./KeysMouseHero.vue";
 import KeysModeRegular from "./modes/KeysModeRegular.vue";
@@ -17,6 +21,23 @@ const MKF = HID.MouseKeyFunction;
 
 const selectedBtn = ref(0);
 const mode = ref("regular");
+const keysAlert = ref("");
+let keysAlertTimer;
+
+function showKeysAlert(text) {
+  keysAlert.value = text;
+  clearTimeout(keysAlertTimer);
+  keysAlertTimer = setTimeout(() => {
+    keysAlert.value = "";
+  }, 3200);
+}
+
+function guardKeyRemap(index, keyFunction) {
+  const keys = mouseCfg.value.keys;
+  if (wouldRetainLeftButton(keys, index, keyFunction, MKF)) return true;
+  showKeysAlert(LEFT_BUTTON_GUARD_MSG);
+  return false;
+}
 
 const modes = [
   { id: "regular", label: "常规" },
@@ -51,6 +72,7 @@ provide(KEYS_PAGE_KEY, {
   selectedBtn,
   selectedLabel,
   labelForKey,
+  guardKeyRemap,
 });
 </script>
 
@@ -82,6 +104,11 @@ provide(KEYS_PAGE_KEY, {
         </div>
       </aside>
     </section>
+
+    <div v-if="keysAlert" class="keys-guard-alert" role="alert">
+      <span class="keys-guard-icon" aria-hidden="true">!</span>
+      <span>{{ keysAlert }}</span>
+    </div>
 
     <nav class="keys-mode-bridge" aria-label="映射模式">
       <div class="keys-mode-seg">

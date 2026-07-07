@@ -4,7 +4,7 @@ import { useHidAction } from "@/composables/useHidAction.js";
 import { buildBasicFunctions } from "@/config/mouse-key-functions.js";
 import { injectKeysPage } from "../useKeysPageInject.js";
 
-const { HID, selectedBtn, selectedLabel } = injectKeysPage();
+const { HID, selectedBtn, selectedLabel, guardKeyRemap } = injectKeysPage();
 const { run } = useHidAction();
 const MKF = HID.MouseKeyFunction;
 
@@ -33,12 +33,11 @@ const mediaFunctions = computed(() =>
 );
 
 async function assignBasic(fn) {
+  const keyFunction = { type: fn.type, param: fn.param };
+  if (!guardKeyRemap(selectedBtn.value, keyFunction)) return;
   await run(
     async () => {
-      await HID.Set_MS_KeyFunction(selectedBtn.value, {
-        type: fn.type,
-        param: fn.param,
-      });
+      await HID.Set_MS_KeyFunction(selectedBtn.value, keyFunction);
     },
     `${selectedLabel.value} → ${fn.label}`
   );

@@ -4,7 +4,7 @@ import { useHidAction } from "@/composables/useHidAction.js";
 import { COMBO_KEY_CHARS } from "@/config/mouse-key-functions.js";
 import { injectKeysPage } from "../useKeysPageInject.js";
 
-const { HID, selectedBtn, selectedLabel } = injectKeysPage();
+const { HID, selectedBtn, selectedLabel, guardKeyRemap } = injectKeysPage();
 const { run } = useHidAction();
 const MKF = HID.MouseKeyFunction;
 
@@ -23,12 +23,11 @@ function clearCombo() {
 async function applyCombo() {
   const keys = comboSlots.value.filter(Boolean);
   if (!keys.length) return;
+  const keyFunction = { type: MKF.ShortcutKey, param: 0 };
+  if (!guardKeyRemap(selectedBtn.value, keyFunction)) return;
   await run(async () => {
     await HID.Set_MS_ShortcutKey(selectedBtn.value, keys);
-    await HID.Set_MS_KeyFunction(selectedBtn.value, {
-      type: MKF.ShortcutKey,
-      param: 0,
-    });
+    await HID.Set_MS_KeyFunction(selectedBtn.value, keyFunction);
   }, `${selectedLabel.value} 组合键已应用`);
 }
 </script>

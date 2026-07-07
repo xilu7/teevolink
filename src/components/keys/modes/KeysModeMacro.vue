@@ -3,16 +3,18 @@ import { computed } from "vue";
 import { useHidAction } from "@/composables/useHidAction.js";
 import { injectKeysPage } from "../useKeysPageInject.js";
 
-const { HID, mouseCfg, selectedBtn, selectedLabel } = injectKeysPage();
+const { HID, mouseCfg, selectedBtn, selectedLabel, guardKeyRemap } =
+  injectKeysPage();
 const { run } = useHidAction();
 const MKF = HID.MouseKeyFunction;
 
 const macros = computed(() => mouseCfg.value.macros || []);
 
 async function assignMacro(i) {
+  const keyFunction = { type: MKF.Macro, param: i };
+  if (!guardKeyRemap(selectedBtn.value, keyFunction)) return;
   await run(
-    () =>
-      HID.Set_MS_KeyFunction(selectedBtn.value, { type: MKF.Macro, param: i }),
+    () => HID.Set_MS_KeyFunction(selectedBtn.value, keyFunction),
     `${selectedLabel.value} → 宏 ${i + 1}`
   );
 }
